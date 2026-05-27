@@ -117,6 +117,10 @@ a conventional file agree, `medium` for a single signal.
 
 `packages/core` ingests a repo into a normalized snapshot, then layers analysis on top.
 
+- **Ingestion** — GitHub repos are pulled as a single `codeload` tarball (one
+  download, served from memory), so analysis makes **zero rate-limited API calls**
+  in balanced mode and stays fast on large repos: `nestjs/nest` (~2,100 files)
+  briefs in under a second. Falls back to the trees + contents API if needed.
 - **Import graph** — lightweight JS/TS and Python extractors resolve relative paths,
   `tsconfig` path aliases, and Python package/relative imports to in-repo files.
   External (`node_modules` / stdlib) imports are dropped.
@@ -246,10 +250,11 @@ for the milestone sequence that took it from plan to working software.
 
 ## Status
 
-V1 feature-complete: CLI and web both work end-to-end against real repos, with
-deep-mode churn analysis from commit history. The remaining item before a
-serverless deploy is swapping the web's SQLite store for a hosted DB
-(Postgres/Turso) — see [`docs/DEPLOY.md`](./docs/DEPLOY.md).
+V1 feature-complete and then some: CLI, web, and an MCP server all work
+end-to-end against real repos, with circular-dependency detection, a route map,
+and deep-mode churn analysis. Tarball ingestion keeps it fast — a ~2,100-file
+repo briefs in under a second, well inside the 30s/90s targets. The web store
+runs on local SQLite or hosted Turso (see [`docs/DEPLOY.md`](./docs/DEPLOY.md)).
 
 ## License
 

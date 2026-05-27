@@ -63,6 +63,7 @@ _Safe to skip: 1 generated/asset files._
 ## Hotspots
 
 - `packages/core/src/types.ts` _(score 6)_ — high fan-in (25 importers), frequently changed (8 recent commits), no nearby tests. Core module — many files depend on it; change with care.
+- `packages/core/src/ingest/github.ts` _(score 4)_ — large file (314 lines), frequently changed (3 recent commits). Actively churning — recent, frequent edits; expect it to keep moving.
 - `packages/core/src/analyze/pipeline.ts` _(score 3)_ — high fan-out (12 imports), frequently changed (7 recent commits). Actively churning — recent, frequent edits; expect it to keep moving.
 - `packages/core/src/index.ts` _(score 3)_ — high fan-out (18 imports), frequently changed (6 recent commits). Actively churning — recent, frequent edits; expect it to keep moving.
 - `apps/cli/src/index.ts` _(score 2)_ — frequently changed (4 recent commits). Actively churning — recent, frequent edits; expect it to keep moving.
@@ -76,7 +77,6 @@ _Safe to skip: 1 generated/asset files._
 - `apps/web/app/layout.tsx` _(score 2)_ — no nearby tests. No tests found — verify behavior before changing.
 - `apps/web/components/brief-nav.tsx` _(score 2)_ — no nearby tests. No tests found — verify behavior before changing.
 - `apps/web/components/mermaid-graph.tsx` _(score 2)_ — no nearby tests. No tests found — verify behavior before changing.
-- `apps/web/components/repo-input.tsx` _(score 2)_ — no nearby tests. No tests found — verify behavior before changing.
 
 ## File breakdown
 
@@ -90,4 +90,4 @@ _Safe to skip: 1 generated/asset files._
 | generated | 1 |
 | unknown | 6 |
 
-_Generated 2026-05-27T05:16:35.828Z · deep mode._
+_Generated 2026-05-27T05:26:05.549Z · deep mode._
