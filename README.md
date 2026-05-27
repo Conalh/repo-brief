@@ -23,7 +23,7 @@ manifest parsing and a JS/TS + Python import graph. The web UI is next.
 | --- | --- |
 | `packages/core` | Shared TypeScript analysis engine (ingest, classify, report). |
 | `apps/cli` | `repobrief` command-line tool. |
-| `apps/web` | Next.js web surface (scaffolded in Milestone 4). |
+| `apps/web` | Next.js web app: paste a URL, browse the brief, export Markdown. |
 
 ## Develop
 
@@ -44,6 +44,24 @@ pnpm cli inspect .
 
 # Just the Mermaid architecture graph:
 pnpm cli graph .
+```
+
+## Web app (Milestone 4)
+
+```bash
+pnpm --filter @repobrief/web dev      # http://localhost:3000
+```
+
+Paste a public GitHub URL on the home page; the brief is computed synchronously,
+persisted to SQLite by repo + commit SHA (so re-runs are cached and links are
+shareable), and rendered across Overview / Architecture / Hotspots / Where-to-start
+tabs with a Markdown export. The hosted surface only accepts GitHub references —
+it never reads the server filesystem from user input.
+
+Seed the landing-page demo briefs (a `GITHUB_TOKEN` avoids rate limits):
+
+```bash
+cd apps/web && GITHUB_TOKEN=... node --experimental-strip-types scripts/seed-demos.ts
 ```
 
 Set `GITHUB_TOKEN` (see [`.env.example`](./.env.example)) to raise the GitHub

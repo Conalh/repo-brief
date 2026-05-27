@@ -12,6 +12,7 @@ coverage/
 *.sqlite
 *.sqlite-journal
 .repobrief/
+.data/
 
 # os / editor
 .DS_Store
