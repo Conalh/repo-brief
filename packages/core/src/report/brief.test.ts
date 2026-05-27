@@ -24,6 +24,11 @@ const analysis: BriefAnalysis = {
   },
   commands: { dev: 'npm run dev', build: 'npm run build', test: 'npm test' },
   entrypoints: [{ kind: 'app', path: 'app/page.tsx', evidence: 'Next.js app router page' }],
+  subsystems: [
+    { name: 'app', pathPrefix: 'app', fileCount: 1, dependsOn: ['src'], confidence: 'medium' },
+    { name: 'src', pathPrefix: 'src', fileCount: 1, dependsOn: [], confidence: 'medium' },
+  ],
+  architectureMermaid: 'graph LR\n  n0["app (1)"]\n  n1["src (1)"]\n  n0 --> n1',
 };
 
 describe('assembleBrief', () => {
@@ -52,6 +57,8 @@ describe('assembleBrief', () => {
     expect(md).toContain('Next.js');
     expect(md).toContain('npm run dev');
     expect(md).toContain('app/page.tsx');
+    expect(md).toContain('## Architecture');
+    expect(md).toContain('```mermaid');
     expect(md).toContain('| source | 1 |');
   });
 });

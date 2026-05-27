@@ -5,6 +5,7 @@ import type {
   FileKind,
   Manifest,
   RepoSnapshot,
+  Subsystem,
   TechStack,
 } from '../types.js';
 
@@ -25,6 +26,8 @@ export interface BriefAnalysis {
   techStack: TechStack;
   commands: Commands;
   entrypoints: Entrypoint[];
+  subsystems: Subsystem[];
+  architectureMermaid: string;
 }
 
 const EMPTY_ANALYSIS: BriefAnalysis = {
@@ -32,6 +35,8 @@ const EMPTY_ANALYSIS: BriefAnalysis = {
   techStack: { languages: [], frameworks: [], packageManagers: [] },
   commands: {},
   entrypoints: [],
+  subsystems: [],
+  architectureMermaid: '',
 };
 
 /**
@@ -73,6 +78,8 @@ export function assembleBrief(
     commands: analysis.commands,
     entrypoints: analysis.entrypoints,
     manifests: analysis.manifests,
+    subsystems: analysis.subsystems,
+    architectureMermaid: analysis.architectureMermaid,
     partial: snapshot.truncated,
     generatedAt: new Date().toISOString(),
   };
@@ -118,6 +125,23 @@ export function renderBriefMarkdown(brief: BriefReport): string {
     lines.push('');
     for (const ep of entrypoints) {
       lines.push(`- **${ep.kind}:** \`${ep.path}\` — ${ep.evidence}`);
+    }
+  }
+
+  if (brief.subsystems.length > 0) {
+    lines.push('');
+    lines.push('## Architecture');
+    lines.push('');
+    for (const s of brief.subsystems) {
+      const deps =
+        s.dependsOn.length > 0 ? ` → ${s.dependsOn.join(', ')}` : '';
+      lines.push(`- **${s.name}** (${s.fileCount} files)${deps}`);
+    }
+    if (brief.architectureMermaid) {
+      lines.push('');
+      lines.push('```mermaid');
+      lines.push(brief.architectureMermaid);
+      lines.push('```');
     }
   }
 

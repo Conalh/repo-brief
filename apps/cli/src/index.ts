@@ -6,27 +6,37 @@ import {
   ingestLocal,
   parseGitHubUrl,
   renderBriefMarkdown,
+  type BriefReport,
   type RepoSnapshot,
 } from '@repobrief/core';
 
-/**
- * Milestone-1 CLI: `repobrief inspect <url|path>`.
- * Prints a shallow brief (identity + file breakdown) for a GitHub repo or a
- * local directory. Deeper analysis and more subcommands arrive in later milestones.
- */
-async function inspect(target: string): Promise<number> {
-  let snapshot: RepoSnapshot;
-
-  // A local path wins if it exists on disk; otherwise treat as a GitHub ref.
+/** Ingest a target (local path wins if it exists on disk, else a GitHub ref). */
+async function ingest(target: string): Promise<RepoSnapshot> {
   if (target === '.' || target.startsWith('./') || existsSync(target)) {
-    snapshot = await ingestLocal(target);
-  } else {
-    const input = parseGitHubUrl(target);
-    snapshot = await ingestGitHub(input, { token: process.env.GITHUB_TOKEN });
+    return ingestLocal(target);
   }
+  const input = parseGitHubUrl(target);
+  return ingestGitHub(input, { token: process.env.GITHUB_TOKEN });
+}
 
-  const brief = await analyzeSnapshot(snapshot);
-  process.stdout.write(renderBriefMarkdown(brief) + '\n');
+async function brief(target: string): Promise<BriefReport> {
+  return analyzeSnapshot(await ingest(target));
+}
+
+/** `repobrief inspect <target>` — print the full brief as Markdown. */
+async function inspect(target: string): Promise<number> {
+  process.stdout.write(renderBriefMarkdown(await brief(target)) + '\n');
+  return 0;
+}
+
+/** `repobrief graph <target>` — print just the Mermaid architecture graph. */
+async function graph(target: string): Promise<number> {
+  const report = await brief(target);
+  if (!report.architectureMermaid) {
+    process.stderr.write('No subsystems detected to graph.\n');
+    return 1;
+  }
+  process.stdout.write(report.architectureMermaid + '\n');
   return 0;
 }
 
@@ -37,14 +47,21 @@ function usage(): void {
       '',
       'Usage:',
       '  repobrief inspect <github-url | owner/repo | local-path>',
+      '  repobrief graph   <target>   # Mermaid architecture graph only',
       '',
       'Examples:',
       '  repobrief inspect https://github.com/vercel/next.js',
       '  repobrief inspect .',
+      '  repobrief graph .',
       '',
     ].join('\n'),
   );
 }
+
+const COMMANDS: Record<string, (target: string) => Promise<number>> = {
+  inspect,
+  graph,
+};
 
 async function main(): Promise<void> {
   const [command, target] = process.argv.slice(2);
@@ -55,7 +72,8 @@ async function main(): Promise<void> {
     return;
   }
 
-  if (command !== 'inspect') {
+  const handler = COMMANDS[command];
+  if (!handler) {
     process.stderr.write(`Unknown command: ${command}\n`);
     usage();
     process.exitCode = 1;
@@ -63,7 +81,7 @@ async function main(): Promise<void> {
   }
 
   if (!target) {
-    process.stderr.write('inspect requires a target (URL or path).\n');
+    process.stderr.write(`${command} requires a target (URL or path).\n`);
     process.exitCode = 1;
     return;
   }
@@ -71,7 +89,7 @@ async function main(): Promise<void> {
   try {
     // Set the code but let the event loop drain naturally so in-flight
     // network sockets close cleanly (avoids a libuv assertion on Windows).
-    process.exitCode = await inspect(target);
+    process.exitCode = await handler(target);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     process.stderr.write(`Error: ${message}\n`);

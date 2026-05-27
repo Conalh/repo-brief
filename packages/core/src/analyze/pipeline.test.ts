@@ -23,4 +23,15 @@ describe('analyzeSnapshot (end-to-end over the fixture)', () => {
     expect(brief.entrypoints.some((e) => e.path === 'app/page.tsx')).toBe(true);
     expect(brief.manifests.some((m) => m.manager === 'npm')).toBe(true);
   });
+
+  it('builds subsystems with an import-graph dependency edge', async () => {
+    const snapshot = await ingestLocal(fixture);
+    const brief = await analyzeSnapshot(snapshot);
+
+    const app = brief.subsystems.find((s) => s.name === 'app');
+    expect(app).toBeDefined();
+    // app/page.tsx imports ../src/index -> app depends on src.
+    expect(app?.dependsOn).toContain('src');
+    expect(brief.architectureMermaid).toContain('graph LR');
+  });
 });

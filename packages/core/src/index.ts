@@ -17,6 +17,18 @@ export {
   parseGithubWorkflow,
 } from './analyze/manifests/index.js';
 export { detectCommands, detectEntrypoints } from './analyze/entrypoints.js';
+export { buildSubsystems, subsystemKeyFor } from './analyze/subsystems.js';
+export {
+  buildImportGraph,
+  extractJsImports,
+  resolveJsImport,
+  buildAliasResolver,
+  extractPyImports,
+  resolvePyImport,
+} from './graph/index.js';
+export type { ImportGraphOptions } from './graph/index.js';
+export { renderSubsystemMermaid } from './report/mermaid.js';
 export { analyzeSnapshot } from './analyze/pipeline.js';
+export type { AnalyzeOptions } from './analyze/pipeline.js';
 export { assembleBrief, renderBriefMarkdown } from './report/brief.js';
 export type { BriefAnalysis } from './report/brief.js';

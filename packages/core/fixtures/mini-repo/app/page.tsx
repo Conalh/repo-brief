@@ -1,3 +1,5 @@
+import { greet } from '../src/index';
+
 export default function Page() {
-  return null;
+  return greet('world');
 }
