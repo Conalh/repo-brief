@@ -103,6 +103,28 @@ export interface Commands {
   test?: string;
 }
 
+export type ImportKind = 'static' | 'dynamic' | 'type_only';
+
+/** A resolved edge between two in-repo files (importer -> imported). */
+export interface ImportEdge {
+  from: string;
+  to: string;
+  kind: ImportKind;
+  /** How sure we are the edge resolved correctly. */
+  confidence: Confidence;
+}
+
+/** A cohesive group of files (e.g. a top-level folder) and its dependencies. */
+export interface Subsystem {
+  name: string;
+  /** Repo-relative path prefix that owns this subsystem, e.g. "src/ingest". */
+  pathPrefix: string;
+  fileCount: number;
+  /** Names of other subsystems this one imports from. */
+  dependsOn: string[];
+  confidence: Confidence;
+}
+
 export type EntrypointKind = 'app' | 'api' | 'cli' | 'test' | 'build';
 
 /** A notable entry file with the reason it was flagged. */
@@ -126,6 +148,10 @@ export interface BriefReport {
   entrypoints: Entrypoint[];
   /** Parsed manifests backing the tech/command detection (Milestone 2). */
   manifests: Manifest[];
+  /** Subsystem map derived from folders + import graph (Milestone 3). */
+  subsystems: Subsystem[];
+  /** Mermaid source for the subsystem dependency graph (Milestone 3). */
+  architectureMermaid: string;
   /** True if the underlying snapshot was partial. */
   partial: boolean;
   generatedAt: string;
