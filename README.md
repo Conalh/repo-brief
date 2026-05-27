@@ -1,67 +1,85 @@
 # RepoBrief
 
-Turn any public GitHub repo into an architecture map, key-file guide, risk
-summary, hotspot list, and a "where to start" onboarding path. RepoBrief
-compresses the first confusing hour in an unfamiliar codebase into a trustworthy
-briefing. It is an **orientation layer, not a code review**.
+> Turn any public GitHub repo into an architecture map, key-file guide, hotspot
+> list, and a "where to start" onboarding path. RepoBrief compresses the first
+> confusing hour in an unfamiliar codebase into a trustworthy briefing.
+> It is an **orientation layer, not a code review.**
 
-See [`PLAN.md`](./PLAN.md) for the full product spec and [`ROADMAP.md`](./ROADMAP.md)
-for the milestone sequence taking it from plan to shipped product.
+[![CI](https://github.com/conalh/repo-brief/actions/workflows/ci.yml/badge.svg)](https://github.com/conalh/repo-brief/actions/workflows/ci.yml)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
-## Status
+<!-- Update the badge/links above with your actual GitHub repo path. -->
 
-Early development. The analysis engine is feature-complete for V1: the CLI
-ingests a GitHub URL or local path and prints a brief with the detected tech
-stack (languages + frameworks), run/build/test commands, entrypoints, a
-**subsystem architecture map** (Mermaid graph), a ranked **hotspot list**, and a
-**"where to start" reading path** — backed by npm/Python/Rust/GitHub Actions
-manifest parsing and a JS/TS + Python import graph, with **fast/balanced/deep**
-depth modes. The web app is live (see below). Remaining before launch: deploy
-and portfolio polish (Milestone 6).
+See a real example: [`REPO_BRIEF.md`](./REPO_BRIEF.md) is RepoBrief run on itself.
 
-## Monorepo layout
+## What it does
+
+Given a repo, RepoBrief answers the questions you ask in any new codebase:
+
+- **What is this?** — language + framework detection (npm, Python, Rust, GitHub Actions).
+- **How do I run it?** — dev/build/test commands pulled from manifests.
+- **How is it organized?** — a subsystem map built from folders + a real import graph (JS/TS + Python), rendered as Mermaid.
+- **What's risky?** — a ranked hotspot list (size, import centrality, test gaps).
+- **What do I read first?** — an ordered onboarding path with a skip list.
+
+Three depth modes: `fast` (no graph), `balanced` (default), `deep`.
+
+## Architecture
+
+RepoBrief is a TypeScript monorepo: a shared analysis engine with a CLI and a web
+app as thin surfaces over it.
+
+```mermaid
+graph LR
+  cli["apps/cli"] --> core["packages/core (engine)"]
+  web["apps/web (Next.js)"] --> core
+  core --> ingest["ingest: GitHub API / local fs"]
+  core --> analyze["analyze: manifests, graph, hotspots, reading path"]
+  core --> report["report: brief + Markdown + Mermaid"]
+```
 
 | Package | Purpose |
 | --- | --- |
-| `packages/core` | Shared TypeScript analysis engine (ingest, classify, report). |
+| `packages/core` | Analysis engine: ingest → classify → graph → report. |
 | `apps/cli` | `repobrief` command-line tool. |
-| `apps/web` | Next.js web app: paste a URL, browse the brief, export Markdown. |
+| `apps/web` | Next.js app: paste a URL, browse the brief, export Markdown. |
 
-## Develop
-
-```bash
-pnpm install
-pnpm test        # run all package test suites
-pnpm build       # build all packages
-```
-
-## CLI usage (Milestone 1)
+## Install (CLI)
 
 ```bash
-# From the repo root, against a public GitHub repo:
-pnpm cli inspect https://github.com/owner/repo
-
-# Or a local directory:
-pnpm cli inspect .
-
-# Just the Mermaid architecture graph:
-pnpm cli graph .
-
-# Depth modes: fast (no graph) | balanced (default) | deep
-pnpm cli inspect . --mode deep
+npm install -g @repobrief/cli
+repobrief inspect https://github.com/owner/repo
 ```
 
-## Web app (Milestone 4)
+Or run without installing:
+
+```bash
+npx @repobrief/cli inspect owner/repo
+```
+
+## CLI usage
+
+```bash
+repobrief inspect https://github.com/owner/repo   # full brief (Markdown)
+repobrief inspect .                                # a local directory
+repobrief inspect . --mode deep                    # fast | balanced | deep
+repobrief graph .                                  # Mermaid architecture graph only
+```
+
+Set `GITHUB_TOKEN` (see [`.env.example`](./.env.example)) to raise the GitHub API
+rate limit from 60 to 5000 requests/hour.
+
+## Web app
 
 ```bash
 pnpm --filter @repobrief/web dev      # http://localhost:3000
 ```
 
-Paste a public GitHub URL on the home page; the brief is computed synchronously,
-persisted to SQLite by repo + commit SHA (so re-runs are cached and links are
-shareable), and rendered across Overview / Architecture / Hotspots / Where-to-start
-tabs with a Markdown export. The hosted surface only accepts GitHub references —
-it never reads the server filesystem from user input.
+Paste a public GitHub URL; the brief is computed synchronously, persisted to
+SQLite by repo + commit SHA (so re-runs are cached and links are shareable), and
+rendered across Overview / Architecture / Hotspots / Where-to-start tabs with a
+Markdown export. The hosted surface only accepts GitHub references — it never
+reads the server filesystem from user input.
 
 Seed the landing-page demo briefs (a `GITHUB_TOKEN` avoids rate limits):
 
@@ -69,9 +87,31 @@ Seed the landing-page demo briefs (a `GITHUB_TOKEN` avoids rate limits):
 cd apps/web && GITHUB_TOKEN=... node --experimental-strip-types scripts/seed-demos.ts
 ```
 
-Set `GITHUB_TOKEN` (see [`.env.example`](./.env.example)) to raise the GitHub
-API rate limit from 60 to 5000 requests/hour.
+Deployment notes (Vercel + the SQLite caveat) are in [`docs/DEPLOY.md`](./docs/DEPLOY.md).
+
+## Use in CI
+
+Drop [`docs/repobrief.example.yml`](./docs/repobrief.example.yml) into
+`.github/workflows/` to attach a fresh `REPO_BRIEF.md` to every pull request.
+
+## Develop
+
+```bash
+pnpm install
+pnpm build       # build all packages (Turborepo)
+pnpm test        # run all suites (Vitest)
+pnpm typecheck
+```
+
+## Publish (maintainers)
+
+`@repobrief/core` and `@repobrief/cli` publish together; pnpm rewrites the
+`workspace:` dependency to the real version automatically.
+
+```bash
+pnpm -r publish --access public
+```
 
 ## License
 
-MIT (to be added).
+[MIT](./LICENSE)

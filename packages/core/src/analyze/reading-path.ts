@@ -66,8 +66,18 @@ export function buildReadingPath(input: ReadingPathInput): ReadingPath {
     add(path, `Core module — ${d.fanIn} files depend on it.`);
   }
 
-  // One representative test for concrete usage.
-  const test = files.find((f) => f.kind === 'test');
+  // One representative test for concrete usage. Prefer a real test file outside
+  // test-data/fixtures (both are kind 'test'), since a fixture isn't instructive.
+  const tests = files.filter((f) => f.kind === 'test');
+  const isTestData = (p: string) =>
+    /(^|\/)(fixtures?|__fixtures__|testdata|test-data|__mocks__|mocks|snapshots|__snapshots__)\//i.test(
+      p,
+    );
+  const isRealTest = (p: string) => /\.(test|spec)\.[a-z]+$/i.test(p);
+  const test =
+    tests.find((f) => isRealTest(f.path) && !isTestData(f.path)) ??
+    tests.find((f) => isRealTest(f.path)) ??
+    tests[0];
   add(test?.path, 'A test — concrete usage and expected behavior.');
 
   const skip = files

@@ -27,7 +27,7 @@ importers:
   apps/cli:
     dependencies:
       '@repobrief/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../packages/core
     devDependencies:
       '@types/node':

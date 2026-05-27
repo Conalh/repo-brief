@@ -1,19 +1,32 @@
 {
   "name": "@repobrief/cli",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
+  "description": "RepoBrief CLI — turn any repo into an architecture map, hotspot list, and onboarding path.",
+  "license": "MIT",
+  "author": "Conal",
   "type": "module",
   "bin": {
     "repobrief": "./dist/index.js"
+  },
+  "files": ["dist"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/conalh/repo-brief.git",
+    "directory": "apps/cli"
+  },
+  "keywords": ["repository", "analysis", "cli", "architecture", "onboarding", "github"],
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "prepublishOnly": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@repobrief/core": "workspace:*"
+    "@repobrief/core": "workspace:^"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
