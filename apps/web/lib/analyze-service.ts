@@ -20,7 +20,7 @@ export async function runGitHubBrief(
   const snapshot = await ingestGitHub(input, { token: process.env.GITHUB_TOKEN });
 
   const id = briefId(input.owner!, input.repo, snapshot.headSha, mode);
-  const cached = getBrief(id);
+  const cached = await getBrief(id);
   if (cached) return cached;
 
   const report = await analyzeSnapshot(snapshot, { mode });
@@ -34,6 +34,6 @@ export async function runGitHubBrief(
     isDemo: false,
     createdAt: new Date().toISOString(),
   };
-  putBrief(brief);
+  await putBrief(brief);
   return brief;
 }

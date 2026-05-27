@@ -9,7 +9,7 @@ export default async function HotspotsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { report } = loadBrief(id);
+  const { report } = await loadBrief(id);
 
   if (report.hotspots.length === 0) {
     return <p className="text-sm text-neutral-500">No hotspots flagged.</p>;

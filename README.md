@@ -144,12 +144,16 @@ a conventional file agree, `medium` for a single signal.
 ## The web app
 
 `apps/web` is a Next.js (App Router) app and a thin surface over the engine. Briefs
-run synchronously and persist to SQLite (Node's built-in `node:sqlite`). The hosted
-surface only accepts GitHub references — it never reads the server filesystem from
-user input. Demo briefs are seedable for the landing page:
+run synchronously and persist to a store that auto-selects its backend: local
+**SQLite** by default (zero-config dev), or remote **libSQL/Turso** when
+`TURSO_DATABASE_URL` is set — which is what makes a serverless deploy work. The
+hosted surface only accepts GitHub references — it never reads the server
+filesystem from user input.
+
+Seed the landing-page demo briefs once the app is running:
 
 ```bash
-cd apps/web && GITHUB_TOKEN=... node --experimental-strip-types scripts/seed-demos.ts
+curl -X POST http://localhost:3000/api/demo/seed
 ```
 
 ## Extending it

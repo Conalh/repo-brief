@@ -2,8 +2,8 @@ import { notFound } from 'next/navigation';
 import { getBrief, type StoredBrief } from './store';
 
 /** Load a stored brief or trigger the Next 404 page. */
-export function loadBrief(id: string): StoredBrief {
-  const brief = getBrief(id);
+export async function loadBrief(id: string): Promise<StoredBrief> {
+  const brief = await getBrief(id);
   if (!brief) notFound();
   return brief;
 }

@@ -4,8 +4,8 @@ import { listDemoBriefs } from '@/lib/store';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export default function HomePage() {
-  const demos = listDemoBriefs();
+export default async function HomePage() {
+  const demos = await listDemoBriefs();
 
   return (
     <div className="space-y-10">

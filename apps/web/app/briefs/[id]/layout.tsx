@@ -13,7 +13,7 @@ export default async function BriefLayout({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const brief = loadBrief(id);
+  const brief = await loadBrief(id);
 
   return (
     <div className="space-y-6">

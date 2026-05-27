@@ -9,7 +9,7 @@ export default async function ArchitecturePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { report } = loadBrief(id);
+  const { report } = await loadBrief(id);
 
   if (report.subsystems.length === 0) {
     return <p className="text-sm text-neutral-500">No subsystems detected.</p>;

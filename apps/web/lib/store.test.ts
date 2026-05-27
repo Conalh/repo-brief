@@ -42,7 +42,7 @@ function fakeReport(identity: string): BriefReport {
 describe('store', () => {
   it('round-trips a brief by id', async () => {
     const { getBrief, putBrief } = await import('./store');
-    putBrief({
+    await putBrief({
       id: 'octo-demo-abc',
       owner: 'octo',
       repo: 'demo',
@@ -53,7 +53,7 @@ describe('store', () => {
       createdAt: new Date().toISOString(),
     });
 
-    const loaded = getBrief('octo-demo-abc');
+    const loaded = await getBrief('octo-demo-abc');
     expect(loaded?.repo).toBe('demo');
     expect(loaded?.report.identity).toBe('octo/demo');
     expect(loaded?.isDemo).toBe(false);
@@ -61,12 +61,12 @@ describe('store', () => {
 
   it('returns null for an unknown id', async () => {
     const { getBrief } = await import('./store');
-    expect(getBrief('does-not-exist')).toBeNull();
+    expect(await getBrief('does-not-exist')).toBeNull();
   });
 
   it('lists only demo briefs', async () => {
     const { putBrief, listDemoBriefs } = await import('./store');
-    putBrief({
+    await putBrief({
       id: 'demo-one',
       repo: 'one',
       source: 'github',
@@ -75,7 +75,7 @@ describe('store', () => {
       createdAt: new Date().toISOString(),
     });
 
-    const demos = listDemoBriefs();
+    const demos = await listDemoBriefs();
     expect(demos.some((d) => d.id === 'demo-one')).toBe(true);
     expect(demos.every((d) => d.isDemo)).toBe(true);
   });
@@ -89,8 +89,8 @@ describe('store', () => {
       isDemo: false,
       createdAt: new Date().toISOString(),
     };
-    putBrief({ ...base, report: fakeReport('first') });
-    putBrief({ ...base, report: fakeReport('second') });
-    expect(getBrief('replace-me')?.report.identity).toBe('second');
+    await putBrief({ ...base, report: fakeReport('first') });
+    await putBrief({ ...base, report: fakeReport('second') });
+    expect((await getBrief('replace-me'))?.report.identity).toBe('second');
   });
 });

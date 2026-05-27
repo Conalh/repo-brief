@@ -9,7 +9,7 @@ export default async function StartPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { report } = loadBrief(id);
+  const { report } = await loadBrief(id);
   const { steps, skip } = report.readingPath;
 
   if (steps.length === 0) {

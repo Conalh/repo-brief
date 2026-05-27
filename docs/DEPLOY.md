@@ -3,34 +3,40 @@
 The web app (`apps/web`) is a standard Next.js App Router app. It runs anywhere
 Next.js does, but its persistence layer needs one decision up front.
 
-## The persistence caveat (read this first)
+## Persistence: two backends, chosen by env
 
-The app stores completed briefs in **SQLite** via Node's built-in `node:sqlite`,
-written to the path in `REPOBRIEF_DB_PATH` (default `.data/repobrief.sqlite`).
+The web store auto-selects its backend (`apps/web/lib/store.ts`):
 
-This is perfect for **local development and single-instance hosts** (a VPS, a
-container with a mounted volume, Fly.io, Render, Railway). It does **not** work
-on ephemeral serverless filesystems:
+- **Local SQLite** (default) via Node's built-in `node:sqlite`, at
+  `REPOBRIEF_DB_PATH`. Zero-config; great for dev and **single-instance hosts**
+  with a persistent disk (a VPS, a mounted volume, Fly.io, Render, Railway).
+- **Remote libSQL / Turso** when `TURSO_DATABASE_URL` is set. This is what makes
+  **serverless** (Vercel, Netlify) work — those have an ephemeral filesystem, so a
+  local SQLite file would not persist between invocations.
 
-- **Vercel / Netlify functions** have a read-only filesystem except `/tmp`, and
-  `/tmp` is not shared between invocations. A SQLite file there won't persist, so
-  cached briefs and demo briefs would vanish between requests.
+Both implement the same `Store` interface (`getBrief` / `putBrief` /
+`listDemoBriefs`); switching is purely a matter of which env vars are present.
 
-You have two paths:
+### Setting up Turso
 
-1. **Single-instance host with a persistent disk** — deploy as-is, point
-   `REPOBRIEF_DB_PATH` at the mounted volume. Simplest; matches today's code.
-2. **Serverless (Vercel)** — swap the store for a hosted Postgres (Neon, Supabase)
-   or a serverless SQLite (Turso/libSQL). Only `apps/web/lib/store.ts` needs to
-   change; it already isolates all SQL behind `getBrief` / `putBrief` /
-   `listDemoBriefs`, so this is a contained swap.
+```bash
+turso db create repobrief
+turso db show repobrief --url           # -> TURSO_DATABASE_URL
+turso db tokens create repobrief        # -> TURSO_AUTH_TOKEN
+```
+
+Set both as environment variables on your host. The schema is created
+automatically on first use.
 
 ## Environment variables
 
 | Variable | Purpose |
 | --- | --- |
 | `GITHUB_TOKEN` | Raises the GitHub API rate limit (60 → 5000/hr). Strongly recommended for a public deployment. |
-| `REPOBRIEF_DB_PATH` | Path to the SQLite file. Point at a persistent volume in production. |
+| `REPOBRIEF_DB_PATH` | Path to the local SQLite file (used when `TURSO_DATABASE_URL` is unset). |
+| `TURSO_DATABASE_URL` | libSQL/Turso URL. When set, the app uses it instead of local SQLite. |
+| `TURSO_AUTH_TOKEN` | Auth token for the Turso database. |
+| `SEED_TOKEN` | Optional. If set, `POST /api/demo/seed` requires a matching `x-seed-token` header. |
 
 ## Single-instance deploy (recommended for now)
 
@@ -41,16 +47,15 @@ pnpm --filter @repobrief/web build
 REPOBRIEF_DB_PATH=/data/repobrief.sqlite pnpm --filter @repobrief/web start
 ```
 
-Seed demo briefs once after first boot:
+Seed demo briefs once after first boot by hitting the seed endpoint:
 
 ```bash
-cd apps/web
-GITHUB_TOKEN=... REPOBRIEF_DB_PATH=/data/repobrief.sqlite \
-  node --experimental-strip-types scripts/seed-demos.ts
+curl -X POST https://your-host/api/demo/seed   # add -H "x-seed-token: ..." if SEED_TOKEN is set
 ```
 
 ## Vercel
 
-`vercel.json` is provided and points the build at the web app. Before relying on
-it in production, switch the store to a hosted database (see option 2 above) —
-otherwise briefs will not persist across requests.
+`vercel.json` points the build at the web app. For Vercel, **set
+`TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`** so the app uses Turso instead of the
+ephemeral filesystem — otherwise briefs won't persist between requests. Then seed
+the demos with the curl above against your deployed URL.

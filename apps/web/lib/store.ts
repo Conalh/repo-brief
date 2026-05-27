@@ -1,107 +1,33 @@
-import { mkdirSync } from 'node:fs';
-import { createRequire } from 'node:module';
-import { dirname } from 'node:path';
-import type { DatabaseSync as DatabaseSyncCtor } from 'node:sqlite';
-import type { BriefReport } from '@repobrief/core';
+import { createSqliteStore } from './store/sqlite';
+import { createLibsqlStore } from './store/libsql';
+import type { Store, StoredBrief } from './store/types';
 
-// node:sqlite is a recent (experimental) Node builtin that bundlers don't yet
-// recognize. Load it via createRequire so it resolves natively at runtime
-// instead of being transformed by Vite/Next. The type-only import above is
-// erased at compile time, so it never reaches the bundler.
-const nodeRequire = createRequire(import.meta.url);
-const { DatabaseSync } = nodeRequire('node:sqlite') as {
-  DatabaseSync: typeof DatabaseSyncCtor;
-};
+export type { StoredBrief } from './store/types';
 
-/** A persisted brief plus the identifying metadata used for caching/links. */
-export interface StoredBrief {
-  id: string;
-  owner?: string;
-  repo: string;
-  source: string;
-  headSha?: string;
-  report: BriefReport;
-  isDemo: boolean;
-  createdAt: string;
+/**
+ * Choose the persistence backend by environment:
+ *   - TURSO_DATABASE_URL set  -> remote libSQL (Turso), for serverless deploys.
+ *   - otherwise               -> local SQLite at REPOBRIEF_DB_PATH (zero-config).
+ * Singleton per process.
+ */
+let store: Store | null = null;
+function getStore(): Store {
+  if (store) return store;
+  const tursoUrl = process.env.TURSO_DATABASE_URL;
+  store = tursoUrl
+    ? createLibsqlStore(tursoUrl, process.env.TURSO_AUTH_TOKEN)
+    : createSqliteStore(process.env.REPOBRIEF_DB_PATH ?? '.data/repobrief.sqlite');
+  return store;
 }
 
-interface Row {
-  id: string;
-  owner: string | null;
-  repo: string;
-  source: string;
-  head_sha: string | null;
-  report_json: string;
-  is_demo: number;
-  created_at: string;
+export function getBrief(id: string): Promise<StoredBrief | null> {
+  return getStore().getBrief(id);
 }
 
-let db: DatabaseSyncCtor | null = null;
-
-/** Lazily open (and migrate) the SQLite database. Singleton per process. */
-function getDb(): DatabaseSyncCtor {
-  if (db) return db;
-  const path = process.env.REPOBRIEF_DB_PATH ?? '.data/repobrief.sqlite';
-  mkdirSync(dirname(path), { recursive: true });
-  db = new DatabaseSync(path);
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS briefs (
-      id          TEXT PRIMARY KEY,
-      owner       TEXT,
-      repo        TEXT NOT NULL,
-      source      TEXT NOT NULL,
-      head_sha    TEXT,
-      report_json TEXT NOT NULL,
-      is_demo     INTEGER NOT NULL DEFAULT 0,
-      created_at  TEXT NOT NULL
-    );
-  `);
-  return db;
+export function listDemoBriefs(): Promise<StoredBrief[]> {
+  return getStore().listDemoBriefs();
 }
 
-function rowToBrief(row: Row): StoredBrief {
-  return {
-    id: row.id,
-    owner: row.owner ?? undefined,
-    repo: row.repo,
-    source: row.source,
-    headSha: row.head_sha ?? undefined,
-    report: JSON.parse(row.report_json) as BriefReport,
-    isDemo: row.is_demo === 1,
-    createdAt: row.created_at,
-  };
-}
-
-export function getBrief(id: string): StoredBrief | null {
-  const row = getDb().prepare('SELECT * FROM briefs WHERE id = ?').get(id) as
-    | unknown
-    | undefined;
-  return row ? rowToBrief(row as Row) : null;
-}
-
-export function listDemoBriefs(): StoredBrief[] {
-  const rows = getDb()
-    .prepare('SELECT * FROM briefs WHERE is_demo = 1 ORDER BY repo')
-    .all() as unknown as Row[];
-  return rows.map(rowToBrief);
-}
-
-/** Insert or replace a brief (idempotent on id, so re-runs refresh the cache). */
-export function putBrief(brief: StoredBrief): void {
-  getDb()
-    .prepare(
-      `INSERT OR REPLACE INTO briefs
-         (id, owner, repo, source, head_sha, report_json, is_demo, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .run(
-      brief.id,
-      brief.owner ?? null,
-      brief.repo,
-      brief.source,
-      brief.headSha ?? null,
-      JSON.stringify(brief.report),
-      brief.isDemo ? 1 : 0,
-      brief.createdAt,
-    );
+export function putBrief(brief: StoredBrief): Promise<void> {
+  return getStore().putBrief(brief);
 }

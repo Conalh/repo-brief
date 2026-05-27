@@ -20,7 +20,7 @@ export default async function OverviewPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { report } = loadBrief(id);
+  const { report } = await loadBrief(id);
   const { techStack, commands, entrypoints } = report;
 
   return (
