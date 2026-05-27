@@ -1,0 +1,25 @@
+node_modules/
+dist/
+.turbo/
+*.tsbuildinfo
+coverage/
+
+# env
+.env
+.env.local
+
+# local datastore
+*.sqlite
+*.sqlite-journal
+.repobrief/
+
+# os / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# next
+.next/
+out/

@@ -1,0 +1,11 @@
+{
+  "name": "@repobrief/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "echo \"web app scaffolded in Milestone 4\"",
+    "test": "echo \"no web tests yet\"",
+    "typecheck": "echo \"no web types yet\""
+  }
+}

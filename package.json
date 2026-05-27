@@ -1,0 +1,25 @@
+{
+  "name": "repobrief",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Turn any public GitHub repo into an architecture map, key-file guide, risk summary, and onboarding path.",
+  "packageManager": "pnpm@11.3.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
+    "cli": "pnpm --filter @repobrief/cli exec repobrief"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "prettier": "^3.4.2",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
