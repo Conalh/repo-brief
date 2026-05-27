@@ -1,5 +1,7 @@
 # RepoBrief
 
+![RepoBrief — understand any repo in a minute](docs/images/banner.png)
+
 **An orientation layer for unfamiliar codebases.** Point it at any public GitHub
 repo or local directory and it produces a structured briefing — language and
 framework detection, run/build/test commands, a subsystem map built from a real
@@ -19,6 +21,12 @@ each claim backed by file evidence. It is an orientation layer, **not** a code r
 > **See it run →** [`REPO_BRIEF.md`](./REPO_BRIEF.md) is RepoBrief analyzing its
 > own source. There is no hosted demo yet — run the CLI in two commands (below)
 > or start the web app locally.
+
+## Screenshots
+
+| Architecture (subsystem map, cycles, routes) | Hotspots (ranked risk signals) |
+| --- | --- |
+| ![Architecture](docs/images/architecture.png) | ![Hotspots](docs/images/hotspots.png) |
 
 ## Sample output
 
