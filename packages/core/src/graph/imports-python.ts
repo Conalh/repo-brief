@@ -27,7 +27,9 @@ export function extractPyImports(content: string): RawPyImport[] {
   return out;
 }
 
-const PY_SOURCE_ROOTS = ['', 'src/'];
+// Common layouts: flat (module at repo root), src-layout (PEP 518 `src/`),
+// and the older `lib/` convention. Tried in order; the first existing file wins.
+const PY_SOURCE_ROOTS = ['', 'src/', 'lib/'];
 
 /** Try module-path candidates (module.py and module/__init__.py) against files. */
 function matchModule(modPath: string, files: ReadonlySet<string>): string | null {

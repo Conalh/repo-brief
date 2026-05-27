@@ -1,14 +1,32 @@
+import { isExamplePath } from '../classify/file-kind.js';
+import { MAX_SOURCE_TEXT_BYTES } from '../constants.js';
 import type { FileNode, ImportEdge, RepoSnapshot } from '../types.js';
 import {
   buildAliasResolver,
+  buildWorkspaceResolver,
   extractJsImports,
   resolveJsImport,
   type AliasResolver,
+  type WorkspacePackage,
 } from './imports-js.js';
 import { extractPyImports, resolvePyImport } from './imports-python.js';
+import {
+  buildGoPackageIndex,
+  extractGoImports,
+  parseGoModulePath,
+  resolveGoImport,
+} from './imports-go.js';
+import { dirOf } from './resolve.js';
+
+/** Resolution context for Go imports: the repo module path and its packages. */
+interface GoContext {
+  modulePath: string;
+  packageIndex: Map<string, string[]>;
+}
 
 export * from './imports-js.js';
 export * from './imports-python.js';
+export * from './imports-go.js';
 export * from './resolve.js';
 
 const JS_EXTENSIONS = new Set(['ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs']);
@@ -18,7 +36,7 @@ export interface ImportGraphOptions {
   maxFiles?: number;
   /** Concurrent reads. Default 12. */
   concurrency?: number;
-  /** Skip reading files larger than this many bytes. Default ~1.5MB. */
+  /** Skip reading files larger than this many bytes. Defaults to the ingest cap. */
   maxFileBytes?: number;
   /** Optional visitor invoked with each source file's content (reuses the read). */
   onSource?: (file: FileNode, content: string) => void;
@@ -43,11 +61,26 @@ export async function buildImportGraph(
 ): Promise<ImportGraphResult> {
   const maxFiles = options.maxFiles ?? 1500;
   const concurrency = options.concurrency ?? 12;
-  const maxFileBytes = options.maxFileBytes ?? 1_500_000;
+  const maxFileBytes = options.maxFileBytes ?? MAX_SOURCE_TEXT_BYTES;
   const fileSet = new Set(snapshot.files.map((f) => f.path));
 
   const aliasContent = await snapshot.reader.read('tsconfig.json');
-  const alias = buildAliasResolver(aliasContent);
+  const tsAlias = buildAliasResolver(aliasContent);
+  const workspaceResolver = buildWorkspaceResolver(
+    await collectWorkspacePackages(snapshot),
+    fileSet,
+  );
+  // tsconfig path aliases take precedence; workspace packages fill the rest.
+  const alias: AliasResolver = (spec) => tsAlias(spec) ?? workspaceResolver(spec);
+
+  // Go resolution is package-directory based, keyed off the module path.
+  const goModulePath = parseGoModulePath(await snapshot.reader.read('go.mod'));
+  const goPackageIndex = buildGoPackageIndex(
+    snapshot.files.filter((f) => f.kind === 'source' && f.extension === 'go').map((f) => f.path),
+  );
+  const go: GoContext | null = goModulePath
+    ? { modulePath: goModulePath, packageIndex: goPackageIndex }
+    : null;
 
   const sources = snapshot.files
     .filter(
@@ -67,7 +100,7 @@ export async function buildImportGraph(
     if (content === null) return;
     lineCounts.set(file.path, countLines(content));
     options.onSource?.(file, content);
-    for (const edge of edgesFor(file, content, fileSet, alias)) {
+    for (const edge of edgesFor(file, content, fileSet, alias, go)) {
       const key = `${edge.from}|${edge.to}|${edge.kind}`;
       if (seen.has(key)) continue;
       seen.add(key);
@@ -115,7 +148,48 @@ function countLines(content: string): number {
 }
 
 function isGraphable(file: FileNode): boolean {
-  return JS_EXTENSIONS.has(file.extension) || file.extension === 'py';
+  return JS_EXTENSIONS.has(file.extension) || file.extension === 'py' || file.extension === 'go';
+}
+
+/**
+ * Discover in-repo workspace packages by reading every non-root package.json
+ * (skipping vendored/generated trees, test fixtures, and example projects).
+ * Scanning manifests directly covers pnpm, yarn, and npm workspaces without
+ * parsing workspace globs.
+ */
+async function collectWorkspacePackages(snapshot: RepoSnapshot): Promise<WorkspacePackage[]> {
+  const packages: WorkspacePackage[] = [];
+  const candidates = snapshot.files.filter(
+    (f) =>
+      f.path.endsWith('/package.json') && // non-root only
+      f.kind !== 'generated' &&
+      f.kind !== 'test' &&
+      !isExamplePath(f.path),
+  );
+
+  for (const file of candidates) {
+    const content = await snapshot.reader.read(file.path);
+    if (content === null) continue;
+    let pkg: { name?: unknown; main?: unknown; module?: unknown };
+    try {
+      pkg = JSON.parse(content) as typeof pkg;
+    } catch {
+      continue;
+    }
+    if (!pkg || typeof pkg.name !== 'string' || pkg.name === '') continue;
+    packages.push({
+      name: pkg.name,
+      dir: dirOf(file.path),
+      entryBase: entryBaseOf(pkg.main) ?? entryBaseOf(pkg.module),
+    });
+  }
+  return packages;
+}
+
+/** Strip a leading "./" and a JS/TS extension from a package entry field. */
+function entryBaseOf(entry: unknown): string | undefined {
+  if (typeof entry !== 'string' || entry === '') return undefined;
+  return entry.replace(/^\.\//, '').replace(/\.(js|jsx|mjs|cjs|ts|tsx)$/, '');
 }
 
 function edgesFor(
@@ -123,6 +197,7 @@ function edgesFor(
   content: string,
   files: ReadonlySet<string>,
   alias: AliasResolver,
+  go: GoContext | null,
 ): ImportEdge[] {
   const edges: ImportEdge[] = [];
   if (file.extension === 'py') {
@@ -130,6 +205,18 @@ function edgesFor(
       const resolved = resolvePyImport(file.path, imp, files);
       if (resolved && resolved.path !== file.path) {
         edges.push({ from: file.path, to: resolved.path, kind: 'static', confidence: 'high' });
+      }
+    }
+  } else if (file.extension === 'go') {
+    for (const spec of extractGoImports(content)) {
+      const resolved = go && resolveGoImport(spec, go.modulePath, go.packageIndex);
+      if (resolved && resolved.path !== file.path) {
+        edges.push({
+          from: file.path,
+          to: resolved.path,
+          kind: 'static',
+          confidence: resolved.confidence,
+        });
       }
     }
   } else {

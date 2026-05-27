@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildAliasResolver,
+  buildWorkspaceResolver,
   extractJsImports,
   resolveJsImport,
 } from './imports-js.js';
@@ -84,5 +85,47 @@ describe('python imports', () => {
   it('drops stdlib/third-party imports', () => {
     const [imp] = extractPyImports('import os');
     expect(resolvePyImport('pkg/core.py', imp!, files)).toBeNull();
+  });
+
+  it('resolves under a lib/ root', () => {
+    const libFiles = new Set(['lib/mymod/__init__.py', 'lib/mymod/core.py']);
+    const [imp] = extractPyImports('import mymod.core');
+    expect(resolvePyImport('app.py', imp!, libFiles)?.path).toBe('lib/mymod/core.py');
+  });
+});
+
+describe('buildWorkspaceResolver', () => {
+  const files = new Set([
+    'packages/core/src/index.ts',
+    'packages/core/src/util.ts',
+    'packages/web/src/app.ts',
+    'packages/ui/index.ts',
+  ]);
+  const packages = [
+    { name: '@acme/core', dir: 'packages/core' },
+    { name: '@acme/ui', dir: 'packages/ui' },
+  ];
+
+  it('resolves a workspace package bare import to its src entry', () => {
+    const resolve = buildWorkspaceResolver(packages, files);
+    const r = resolveJsImport('packages/web/src/app.ts', '@acme/core', files, resolve);
+    expect(r?.path).toBe('packages/core/src/index.ts');
+  });
+
+  it('resolves a subpath import into the package', () => {
+    const resolve = buildWorkspaceResolver(packages, files);
+    const r = resolveJsImport('packages/web/src/app.ts', '@acme/core/util', files, resolve);
+    expect(r?.path).toBe('packages/core/src/util.ts');
+  });
+
+  it('falls back to a top-level index when there is no src/', () => {
+    const resolve = buildWorkspaceResolver(packages, files);
+    const r = resolveJsImport('packages/web/src/app.ts', '@acme/ui', files, resolve);
+    expect(r?.path).toBe('packages/ui/index.ts');
+  });
+
+  it('returns no edge for an unknown bare specifier', () => {
+    const resolve = buildWorkspaceResolver(packages, files);
+    expect(resolveJsImport('packages/web/src/app.ts', 'react', files, resolve)).toBeNull();
   });
 });
