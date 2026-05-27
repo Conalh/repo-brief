@@ -8,6 +8,7 @@ import type {
   Manifest,
   ReadingPath,
   RepoSnapshot,
+  Route,
   Subsystem,
   TechStack,
 } from '../types.js';
@@ -33,6 +34,7 @@ export interface BriefAnalysis {
   subsystems: Subsystem[];
   architectureMermaid: string;
   cycles: string[][];
+  routes: Route[];
   hotspots: Hotspot[];
   readingPath: ReadingPath;
 }
@@ -46,6 +48,7 @@ const EMPTY_ANALYSIS: BriefAnalysis = {
   subsystems: [],
   architectureMermaid: '',
   cycles: [],
+  routes: [],
   hotspots: [],
   readingPath: { steps: [], skip: [] },
 };
@@ -93,6 +96,7 @@ export function assembleBrief(
     subsystems: analysis.subsystems,
     architectureMermaid: analysis.architectureMermaid,
     cycles: analysis.cycles,
+    routes: analysis.routes,
     hotspots: analysis.hotspots,
     readingPath: analysis.readingPath,
     partial: snapshot.truncated,
@@ -157,6 +161,19 @@ export function renderBriefMarkdown(brief: BriefReport): string {
       lines.push('```mermaid');
       lines.push(brief.architectureMermaid);
       lines.push('```');
+    }
+  }
+
+  if (brief.routes.length > 0) {
+    lines.push('');
+    lines.push('## Routes');
+    lines.push('');
+    for (const r of brief.routes.slice(0, 40)) {
+      const method = r.method ? `\`${r.method}\` ` : '';
+      lines.push(`- ${method}\`${r.path}\` — ${r.handlerPath}`);
+    }
+    if (brief.routes.length > 40) {
+      lines.push(`- _…and ${brief.routes.length - 40} more._`);
     }
   }
 

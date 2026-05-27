@@ -20,6 +20,8 @@ export interface ImportGraphOptions {
   concurrency?: number;
   /** Skip reading files larger than this many bytes. Default ~1.5MB. */
   maxFileBytes?: number;
+  /** Optional visitor invoked with each source file's content (reuses the read). */
+  onSource?: (file: FileNode, content: string) => void;
 }
 
 export interface ImportGraphResult {
@@ -64,6 +66,7 @@ export async function buildImportGraph(
     const content = await snapshot.reader.read(file.path);
     if (content === null) return;
     lineCounts.set(file.path, countLines(content));
+    options.onSource?.(file, content);
     for (const edge of edgesFor(file, content, fileSet, alias)) {
       const key = `${edge.from}|${edge.to}|${edge.kind}`;
       if (seen.has(key)) continue;

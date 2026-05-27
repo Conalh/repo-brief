@@ -8,6 +8,7 @@ import { detectCommands, detectEntrypoints } from './entrypoints.js';
 import { detectHotspots } from './hotspots.js';
 import { collectManifests } from './manifests/index.js';
 import { buildReadingPath } from './reading-path.js';
+import { RouteCollector, mergeRoutes } from './routes/index.js';
 import { buildSubsystems } from './subsystems.js';
 
 export interface AnalyzeOptions {
@@ -46,10 +47,16 @@ export async function analyzeSnapshot(
 
   let edges: ImportEdge[] = [];
   let lineCounts = new Map<string, number>();
+  // Route extraction piggybacks on the graph's single content-read pass.
+  const routeCollector = new RouteCollector();
   const graphOptions = options.graph ?? graphOptionsForMode(mode);
   if (graphOptions) {
-    ({ edges, lineCounts } = await buildImportGraph(snapshot, graphOptions));
+    ({ edges, lineCounts } = await buildImportGraph(snapshot, {
+      ...graphOptions,
+      onSource: routeCollector.visit,
+    }));
   }
+  const routes = mergeRoutes(snapshot.files, routeCollector.routes);
 
   // Deep mode adds commit-history churn to hotspot scoring when available.
   let churn = new Map<string, number>();
@@ -78,6 +85,7 @@ export async function analyzeSnapshot(
     subsystems,
     architectureMermaid,
     cycles,
+    routes,
     hotspots,
     readingPath,
   });

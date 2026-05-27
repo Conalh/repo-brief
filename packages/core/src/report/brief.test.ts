@@ -31,6 +31,7 @@ const analysis: BriefAnalysis = {
   ],
   architectureMermaid: 'graph LR\n  n0["app (1)"]\n  n1["src (1)"]\n  n0 --> n1',
   cycles: [],
+  routes: [],
   hotspots: [
     {
       path: 'src/index.ts',

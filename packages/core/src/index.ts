@@ -33,6 +33,13 @@ export {
 export type { ImportGraphOptions, ImportGraphResult, Degree } from './graph/index.js';
 export { renderSubsystemMermaid } from './report/mermaid.js';
 export { findCycles } from './graph/cycles.js';
+export {
+  routesFromNextFiles,
+  extractJsRoutes,
+  extractPyRoutes,
+  mergeRoutes,
+  RouteCollector,
+} from './analyze/routes/index.js';
 export { analyzeSnapshot } from './analyze/pipeline.js';
 export type { AnalyzeOptions } from './analyze/pipeline.js';
 export { assembleBrief, renderBriefMarkdown } from './report/brief.js';

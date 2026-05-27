@@ -19,6 +19,11 @@ describe('Python service fixture', () => {
     // app/main.py imports app.routes -> the "app" subsystem self-references,
     // which is dropped; but the reading path should surface main.py.
     expect(brief.readingPath.steps.some((s) => s.path === 'app/main.py')).toBe(true);
+
+    // The FastAPI decorator in app/routes.py should be picked up as a route.
+    expect(
+      brief.routes.some((r) => r.path === '/health' && r.framework === 'FastAPI'),
+    ).toBe(true);
   });
 });
 

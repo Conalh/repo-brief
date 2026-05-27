@@ -123,6 +123,11 @@ a conventional file agree, `medium` for a single signal.
 - **Subsystems** — files are grouped by folder convention (monorepo `packages/*`,
   `src/*`, top-level dirs), then refined by the import graph into `dependsOn` edges,
   rendered as Mermaid.
+- **Routes** — a route map from Next.js file conventions (App + Pages router, with
+  dynamic `:segment`s) and from FastAPI/Flask/Express handlers, so you can see the
+  HTTP surface and which file serves each path.
+- **Circular dependencies** — Tarjan SCC over the import graph flags files that
+  (transitively) import each other; cycle membership is also a hotspot signal.
 - **Hotspots** — source files are scored against signals; only files that score are
   surfaced, highest first:
 

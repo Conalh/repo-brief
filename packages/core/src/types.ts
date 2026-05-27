@@ -167,6 +167,18 @@ export interface ReadingPath {
   skip: string[];
 }
 
+/** A detected HTTP route / page route and the file that handles it. */
+export interface Route {
+  /** HTTP method (GET/POST/…) for API routes; undefined for page routes. */
+  method?: string;
+  /** URL path, e.g. "/users/:id". */
+  path: string;
+  /** Repo-relative file that defines the route. */
+  handlerPath: string;
+  /** Framework the route was detected from. */
+  framework: string;
+}
+
 export type EntrypointKind = 'app' | 'api' | 'cli' | 'test' | 'build';
 
 /** A notable entry file with the reason it was flagged. */
@@ -198,6 +210,8 @@ export interface BriefReport {
   architectureMermaid: string;
   /** Circular import groups (each a set of files that import each other). */
   cycles: string[][];
+  /** Detected HTTP/page routes and their handler files. */
+  routes: Route[];
   /** Files worth attention, highest score first (Milestone 4). */
   hotspots: Hotspot[];
   /** Ordered onboarding reading path (Milestone 4). */

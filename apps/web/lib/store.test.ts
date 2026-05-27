@@ -33,6 +33,7 @@ function fakeReport(identity: string): BriefReport {
     subsystems: [],
     architectureMermaid: '',
     cycles: [],
+    routes: [],
     hotspots: [],
     readingPath: { steps: [], skip: [] },
     partial: false,
