@@ -15,9 +15,6 @@ each claim backed by file evidence. It is an orientation layer, **not** a code r
 ![Node](https://img.shields.io/badge/node-%3E%3D20-339933)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
-<!-- Update the repo path in the badges/links once this is pushed to GitHub.
-     Add an npm version badge after `pnpm -r publish`. -->
-
 > **See it run →** [`REPO_BRIEF.md`](./REPO_BRIEF.md) is RepoBrief analyzing its
 > own source. There is no hosted demo yet — run the CLI in two commands (below)
 > or start the web app locally.
