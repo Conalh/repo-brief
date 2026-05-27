@@ -1,6 +1,13 @@
 import type { FileNode, ImportEdge, Subsystem } from '../types.js';
 
-const MONOREPO_ROOTS = new Set(['packages', 'apps']);
+const MONOREPO_ROOTS = new Set([
+  'packages',
+  'apps',
+  'libs',
+  'services',
+  'crates', // Rust workspaces
+  'modules',
+]);
 
 /**
  * Compute the subsystem key that owns a file, using folder conventions:

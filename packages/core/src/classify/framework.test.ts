@@ -23,6 +23,21 @@ describe('detectFrameworks', () => {
     const fw = detectFrameworks([{ path: 'App/App.csproj' }], []);
     expect(fw.some((f) => f.name === '.NET')).toBe(true);
   });
+
+  it('detects newer meta-frameworks by dependency', () => {
+    const cases: [string, string][] = [
+      ['astro', 'Astro'],
+      ['nuxt', 'Nuxt'],
+      ['@sveltejs/kit', 'SvelteKit'],
+      ['@remix-run/react', 'Remix'],
+      ['solid-js', 'SolidJS'],
+      ['koa', 'Koa'],
+    ];
+    for (const [dep, name] of cases) {
+      const fw = detectFrameworks([], [npm([dep])]);
+      expect(fw.some((f) => f.name === name)).toBe(true);
+    }
+  });
 });
 
 describe('detectLanguages', () => {

@@ -17,20 +17,32 @@ interface FrameworkRule {
 }
 
 const RULES: FrameworkRule[] = [
+  // JS/TS meta-frameworks first (more specific than the UI libs they build on).
   { name: 'Next.js', dependency: 'next', filePattern: /(^|\/)next\.config\.[a-z]+$/ },
+  { name: 'Nuxt', dependency: 'nuxt', filePattern: /(^|\/)nuxt\.config\.[a-z]+$/ },
+  { name: 'SvelteKit', dependency: '@sveltejs/kit', filePattern: /(^|\/)svelte\.config\.[a-z]+$/ },
+  { name: 'Remix', dependency: '@remix-run/react' },
+  { name: 'Astro', dependency: 'astro', filePattern: /(^|\/)astro\.config\.[a-z]+$/ },
+  // UI libraries.
   { name: 'React', dependency: 'react' },
   { name: 'Vue', dependency: 'vue' },
   { name: 'Svelte', dependency: 'svelte' },
+  { name: 'SolidJS', dependency: 'solid-js' },
   { name: 'Angular', dependency: '@angular/core' },
+  // Node servers.
   { name: 'Express', dependency: 'express' },
   { name: 'Fastify', dependency: 'fastify' },
+  { name: 'Koa', dependency: 'koa' },
   { name: 'NestJS', dependency: '@nestjs/core' },
+  // Python.
   { name: 'FastAPI', dependency: 'fastapi' },
   { name: 'Flask', dependency: 'flask' },
   { name: 'Django', dependency: 'django' },
+  // Rust.
   { name: 'Axum', dependency: 'axum' },
   { name: 'Actix', dependency: 'actix-web' },
   { name: 'Rocket', dependency: 'rocket' },
+  // Other.
   { name: '.NET', filePattern: /\.(csproj|sln)$/ },
 ];
 

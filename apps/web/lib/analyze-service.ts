@@ -4,19 +4,8 @@ import {
   parseGitHubUrl,
   type BriefMode,
 } from '@repobrief/core';
+import { briefId } from './brief-id';
 import { getBrief, putBrief, type StoredBrief } from './store';
-
-/** Build a deterministic, URL-safe id from owner/repo/sha/mode so re-runs cache-hit. */
-function briefId(
-  owner: string,
-  repo: string,
-  sha: string | undefined,
-  mode: BriefMode,
-): string {
-  const slug = `${owner}-${repo}`.toLowerCase().replace(/[^a-z0-9-]+/g, '-');
-  const suffix = mode === 'balanced' ? '' : `-${mode}`;
-  return (sha ? `${slug}-${sha.slice(0, 12)}` : slug) + suffix;
-}
 
 /**
  * Run (or return a cached) brief for a public GitHub repo. The hosted surface

@@ -1,7 +1,17 @@
 import { mkdirSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname } from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
+import type { DatabaseSync as DatabaseSyncCtor } from 'node:sqlite';
 import type { BriefReport } from '@repobrief/core';
+
+// node:sqlite is a recent (experimental) Node builtin that bundlers don't yet
+// recognize. Load it via createRequire so it resolves natively at runtime
+// instead of being transformed by Vite/Next. The type-only import above is
+// erased at compile time, so it never reaches the bundler.
+const nodeRequire = createRequire(import.meta.url);
+const { DatabaseSync } = nodeRequire('node:sqlite') as {
+  DatabaseSync: typeof DatabaseSyncCtor;
+};
 
 /** A persisted brief plus the identifying metadata used for caching/links. */
 export interface StoredBrief {
@@ -26,10 +36,10 @@ interface Row {
   created_at: string;
 }
 
-let db: DatabaseSync | null = null;
+let db: DatabaseSyncCtor | null = null;
 
 /** Lazily open (and migrate) the SQLite database. Singleton per process. */
-function getDb(): DatabaseSync {
+function getDb(): DatabaseSyncCtor {
   if (db) return db;
   const path = process.env.REPOBRIEF_DB_PATH ?? '.data/repobrief.sqlite';
   mkdirSync(dirname(path), { recursive: true });

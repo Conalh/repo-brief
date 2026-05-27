@@ -13,23 +13,33 @@
       "default": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/conalh/repo-brief.git",
     "directory": "packages/core"
   },
-  "keywords": ["repository", "analysis", "architecture", "onboarding", "github"],
+  "keywords": [
+    "repository",
+    "analysis",
+    "architecture",
+    "onboarding",
+    "github"
+  ],
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "prepublishOnly": "tsc -p tsconfig.json"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^2.1.9",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
   },

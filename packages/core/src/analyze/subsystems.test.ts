@@ -9,6 +9,8 @@ describe('subsystemKeyFor', () => {
     ['src/ingest/github.ts', 'src/ingest'],
     ['packages/core/src/x.ts', 'packages/core'],
     ['apps/web/page.tsx', 'apps/web'],
+    ['crates/engine/src/main.rs', 'crates/engine'],
+    ['services/api/main.go', 'services/api'],
     ['lib/util.ts', 'lib'],
   ])('maps %s -> %s', (path, key) => {
     expect(subsystemKeyFor(path)).toBe(key);
