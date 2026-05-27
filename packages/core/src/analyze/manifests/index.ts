@@ -1,3 +1,4 @@
+import { isExamplePath } from '../../classify/file-kind.js';
 import type { Manifest, RepoSnapshot } from '../../types.js';
 import { parseGithubWorkflow } from './github-actions.js';
 import { parseNpmManifest } from './npm.js';
@@ -36,12 +37,14 @@ function parserFor(
  */
 export async function collectManifests(snapshot: RepoSnapshot): Promise<Manifest[]> {
   const candidates = snapshot.files
-    // Skip manifests under fixtures/test-data (kind 'test') and vendored/
-    // generated trees so a repo's own stack isn't polluted by sample projects.
+    // Skip manifests under fixtures/test-data (kind 'test'), vendored/generated
+    // trees, and example/sample/template projects so a repo's own stack isn't
+    // polluted by a bundled sample's package.json.
     .filter(
       (file) =>
         file.kind !== 'test' &&
         file.kind !== 'generated' &&
+        !isExamplePath(file.path) &&
         parserFor(file.path) !== null,
     )
     .sort((a, b) => depth(a.path) - depth(b.path));

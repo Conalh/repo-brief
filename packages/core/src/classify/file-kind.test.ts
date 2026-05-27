@@ -1,5 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { classifyFileKind, extensionOf } from './file-kind.js';
+import { classifyFileKind, extensionOf, isExamplePath } from './file-kind.js';
+
+describe('isExamplePath', () => {
+  it('flags example/sample/template project directories', () => {
+    expect(isExamplePath('examples/next-app/package.json')).toBe(true);
+    expect(isExamplePath('packages/core/example/demo.ts')).toBe(true);
+    expect(isExamplePath('samples/x/main.py')).toBe(true);
+    expect(isExamplePath('templates/starter/package.json')).toBe(true);
+  });
+  it('does not flag ordinary source paths', () => {
+    expect(isExamplePath('src/index.ts')).toBe(false);
+    expect(isExamplePath('packages/core/src/exampleHelper.ts')).toBe(false);
+  });
+});
 
 describe('extensionOf', () => {
   it('returns lowercased extension', () => {

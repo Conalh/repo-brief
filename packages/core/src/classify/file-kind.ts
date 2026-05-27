@@ -75,6 +75,17 @@ const GENERATED_HINTS = [
 // subsystem/hotspot/reading-path signals.
 const TEST_DATA_DIRS = /(^|\/)(fixtures?|__fixtures__|testdata|test-data|__mocks__|mocks|snapshots|__snapshots__)\//;
 
+// Directories holding example / sample / template projects. Their code is real
+// (so it stays in the import graph and subsystems), but their manifests must NOT
+// drive the repo's own stack/command detection — e.g. an `examples/next-app`
+// would otherwise make a non-Next.js repo report "Next.js".
+const EXAMPLE_DIRS = /(^|\/)(examples?|samples?|templates?)\//i;
+
+/** True when a path lives under an example/sample/template project directory. */
+export function isExamplePath(path: string): boolean {
+  return EXAMPLE_DIRS.test(path);
+}
+
 /** Extract the lowercased extension (no dot) from a POSIX path. "" if none. */
 export function extensionOf(path: string): string {
   const base = path.slice(path.lastIndexOf('/') + 1);

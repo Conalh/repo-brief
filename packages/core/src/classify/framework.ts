@@ -5,6 +5,7 @@ import type {
   RepoSnapshot,
   TechStack,
 } from '../types.js';
+import { isExamplePath } from './file-kind.js';
 import { detectLanguages } from './language.js';
 
 /** A framework rule: a dependency to look for plus optional file evidence. */
@@ -88,10 +89,11 @@ export function detectTechStack(
   manifests: Manifest[],
 ): TechStack {
   const { primaryLanguage, languages } = detectLanguages(snapshot.files);
-  // Exclude fixture/test-data and vendored files so a sample project's config
-  // (e.g. a fixture's next.config.js) doesn't get reported as the repo's stack.
+  // Exclude fixture/test-data, vendored files, and example/sample/template
+  // projects so a sample's config (e.g. a fixture's next.config.js) doesn't get
+  // reported as the repo's own stack.
   const ownFiles = snapshot.files.filter(
-    (f) => f.kind !== 'test' && f.kind !== 'generated',
+    (f) => f.kind !== 'test' && f.kind !== 'generated' && !isExamplePath(f.path),
   );
   const frameworks = detectFrameworks(ownFiles, manifests);
 

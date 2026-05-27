@@ -1,5 +1,6 @@
 import { parseTarGzip } from 'nanotar';
 import { classifyFileKind, extensionOf } from '../classify/file-kind.js';
+import { MAX_SOURCE_TEXT_BYTES } from '../constants.js';
 import type {
   ChurnProvider,
   FileContentReader,
@@ -45,7 +46,18 @@ export interface GitHubIngestOptions {
 }
 
 /** Skip storing text for files larger than this (bounds memory for big blobs). */
-const MAX_TEXT_BYTES = 2_000_000;
+const MAX_TEXT_BYTES = MAX_SOURCE_TEXT_BYTES;
+
+/**
+ * Resource ceilings for tarball ingestion. A hosted instance accepts arbitrary
+ * public GitHub URLs, so an attacker could point it at a giant repo to exhaust
+ * server memory. These bound the compressed download, the file count, and the
+ * total decoded text held in memory; exceeding any one fails with a clear error
+ * rather than OOM-ing the process.
+ */
+const MAX_ARCHIVE_BYTES = 250_000_000;
+const MAX_FILE_COUNT = 50_000;
+const MAX_TOTAL_TEXT_BYTES = 300_000_000;
 
 function authHeaders(token?: string): Record<string, string> {
   const headers: Record<string, string> = {
@@ -122,8 +134,9 @@ export async function ingestGitHub(
   try {
     return await ingestViaTarball(input, options);
   } catch (err) {
-    // Don't retry past a definitive auth/not-found answer.
-    if (err instanceof GitHubIngestError && [401, 403, 404].includes(err.status ?? 0)) {
+    // Don't retry past a definitive auth/not-found answer, and don't let a
+    // size-limit rejection (413) fall through to the unbounded tree path.
+    if (err instanceof GitHubIngestError && [401, 403, 404, 413].includes(err.status ?? 0)) {
       throw err;
     }
     return ingestViaTree(input, options);
@@ -153,17 +166,38 @@ async function ingestViaTarball(
   );
   if (!res.ok) throw mapHttpError(res.status, owner!, repo);
 
+  // Reject obviously oversized archives before buffering them into memory.
+  const declaredLength = Number(res.headers?.get?.('content-length') ?? 0);
+  if (declaredLength > MAX_ARCHIVE_BYTES) {
+    throw new GitHubIngestError(
+      `Repository archive is too large to analyze (${declaredLength} bytes; limit ${MAX_ARCHIVE_BYTES}).`,
+      413,
+    );
+  }
+
   const bytes = new Uint8Array(await res.arrayBuffer());
+  if (bytes.length > MAX_ARCHIVE_BYTES) {
+    throw new GitHubIngestError(
+      `Repository archive is too large to analyze (${bytes.length} bytes; limit ${MAX_ARCHIVE_BYTES}).`,
+      413,
+    );
+  }
   const entries = await parseTarGzip(bytes);
   const decoder = new TextDecoder('utf-8', { fatal: false });
 
   const files: FileNode[] = [];
   const contents = new Map<string, string>();
   let headSha: string | undefined;
+  let totalTextBytes = 0;
 
   for (const entry of entries) {
     const name = entry.name;
+    // Only ingest regular files; skip directories and any non-file entries
+    // (e.g. symlinks) a crafted archive might carry.
     if (name.endsWith('/')) continue; // directory
+    if (entry.type !== undefined && entry.type !== 'file' && entry.type !== 'contiguousFile') {
+      continue; // skip symlinks, devices, and other non-regular entries
+    }
     const slash = name.indexOf('/');
     if (slash === -1) continue; // top-level file (shouldn't happen)
 
@@ -175,6 +209,12 @@ async function ingestViaTarball(
 
     const rel = name.slice(slash + 1);
     if (!rel) continue;
+    if (files.length >= MAX_FILE_COUNT) {
+      throw new GitHubIngestError(
+        `Repository has too many files to analyze (limit ${MAX_FILE_COUNT}).`,
+        413,
+      );
+    }
     const data = entry.data ?? new Uint8Array();
     files.push({
       path: rel,
@@ -183,6 +223,13 @@ async function ingestViaTarball(
       kind: classifyFileKind(rel),
     });
     if (data.length > 0 && data.length <= MAX_TEXT_BYTES) {
+      totalTextBytes += data.length;
+      if (totalTextBytes > MAX_TOTAL_TEXT_BYTES) {
+        throw new GitHubIngestError(
+          `Repository has too much text content to analyze (limit ${MAX_TOTAL_TEXT_BYTES} bytes).`,
+          413,
+        );
+      }
       contents.set(rel, decoder.decode(data));
     }
   }
@@ -261,8 +308,15 @@ async function ingestViaTree(
   if (!treeRes.ok) throw mapHttpError(treeRes.status, owner!, repo);
   const tree = (await treeRes.json()) as GitHubTreeResponse;
 
-  const files: FileNode[] = tree.tree
-    .filter((entry) => entry.type === 'blob')
+  const blobs = tree.tree.filter((entry) => entry.type === 'blob');
+  if (blobs.length > MAX_FILE_COUNT) {
+    throw new GitHubIngestError(
+      `Repository has too many files to analyze (limit ${MAX_FILE_COUNT}).`,
+      413,
+    );
+  }
+
+  const files: FileNode[] = blobs
     .map((entry) => ({
       path: entry.path,
       extension: extensionOf(entry.path),

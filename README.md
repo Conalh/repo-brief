@@ -9,7 +9,7 @@ import graph, a ranked hotspot list, and an ordered "where to start" reading pat
 each claim backed by file evidence. It is an orientation layer, **not** a code review.
 
 [![CI](https://github.com/conalh/repo-brief/actions/workflows/ci.yml/badge.svg)](https://github.com/conalh/repo-brief/actions/workflows/ci.yml)
-![tests](https://img.shields.io/badge/tests-86%20passing-brightgreen)
+![tests](https://img.shields.io/badge/tests-117%20passing-brightgreen)
 ![coverage](https://img.shields.io/badge/core%20coverage-96%25-brightgreen)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6)
 ![Node](https://img.shields.io/badge/node-%3E%3D20-339933)
@@ -129,9 +129,11 @@ a conventional file agree, `medium` for a single signal.
   download, served from memory), so analysis makes **zero rate-limited API calls**
   in balanced mode and stays fast on large repos: `nestjs/nest` (~2,100 files)
   briefs in under a second. Falls back to the trees + contents API if needed.
-- **Import graph** — lightweight JS/TS and Python extractors resolve relative paths,
-  `tsconfig` path aliases, and Python package/relative imports to in-repo files.
-  External (`node_modules` / stdlib) imports are dropped.
+- **Import graph** — lightweight JS/TS, Python, and Go extractors resolve relative
+  paths, `tsconfig` path aliases, monorepo **workspace packages** (so cross-package
+  imports like `@scope/core` become real edges), Python package/relative imports, and
+  Go module-path imports to in-repo files. External (`node_modules` / stdlib) imports
+  are dropped.
 - **Subsystems** — files are grouped by folder convention (monorepo `packages/*`,
   `src/*`, top-level dirs), then refined by the import graph into `dependsOn` edges,
   rendered as Mermaid.
@@ -187,13 +189,14 @@ A new manifest format is a parser in
 [`packages/core/src/analyze/manifests/`](./packages/core/src/analyze/manifests) plus
 an entry in its `parserFor` switch. A new language for the import graph is an extractor
 alongside [`imports-js.ts`](./packages/core/src/graph/imports-js.ts) /
-[`imports-python.ts`](./packages/core/src/graph/imports-python.ts).
+[`imports-python.ts`](./packages/core/src/graph/imports-python.ts) /
+[`imports-go.ts`](./packages/core/src/graph/imports-go.ts).
 
 ## Tests
 
-86 tests (78 engine + 8 web). The engine has unit coverage of every manifest
+117 tests (109 engine + 8 web). The engine has unit coverage of every manifest
 parser, the import resolvers, subsystem grouping, hotspot ranking, and the
-reading path, plus end-to-end runs over checked-in JS/TS, Python, and Rust
+reading path, plus end-to-end runs over checked-in JS/TS, Python, Go, and Rust
 fixtures — ~96% statement coverage. The web lib covers the SQLite store
 round-trip and the cache-key logic.
 

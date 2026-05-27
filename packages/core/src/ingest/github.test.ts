@@ -68,6 +68,22 @@ describe('ingestGitHub — tarball path', () => {
     expect(snapshot.headSha).toBe('abc123');
     expect(snapshot.files).toHaveLength(1);
   });
+
+  it('rejects an oversized archive without falling back to the tree path', async () => {
+    const oversized = {
+      ok: true,
+      status: 200,
+      headers: { get: (k: string) => (k === 'content-length' ? '999999999' : null) },
+      arrayBuffer: async () => new Uint8Array().buffer,
+    } as unknown as Response;
+    const fetchImpl = vi.fn().mockResolvedValueOnce(oversized);
+
+    await expect(
+      ingestGitHub(input, { fetchImpl: fetchImpl as unknown as typeof fetch }),
+    ).rejects.toThrow(GitHubIngestError);
+    // The 413 is fatal: no second (tree-path) request is made.
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('ingestGitHub — tree path (preferTree)', () => {
