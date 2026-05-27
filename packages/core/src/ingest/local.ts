@@ -1,7 +1,12 @@
-import { readdir, stat } from 'node:fs/promises';
+import { readdir, readFile, stat } from 'node:fs/promises';
 import { basename, join, relative, resolve, sep } from 'node:path';
 import { classifyFileKind, extensionOf } from '../classify/file-kind.js';
-import type { FileNode, RepositoryInput, RepoSnapshot } from '../types.js';
+import type {
+  FileContentReader,
+  FileNode,
+  RepositoryInput,
+  RepoSnapshot,
+} from '../types.js';
 
 /** Directory names never worth walking into for a V1 snapshot. */
 const SKIP_DIRS = new Set([
@@ -78,5 +83,15 @@ export async function ingestLocal(
     localPath: root,
   };
 
-  return { input, files, truncated };
+  const reader: FileContentReader = {
+    async read(path) {
+      try {
+        return await readFile(join(root, path), 'utf8');
+      } catch {
+        return null;
+      }
+    },
+  };
+
+  return { input, files, truncated, reader };
 }

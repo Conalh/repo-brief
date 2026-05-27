@@ -1,5 +1,10 @@
 import { classifyFileKind, extensionOf } from '../classify/file-kind.js';
-import type { FileNode, RepositoryInput, RepoSnapshot } from '../types.js';
+import type {
+  FileContentReader,
+  FileNode,
+  RepositoryInput,
+  RepoSnapshot,
+} from '../types.js';
 
 /** Error raised for GitHub ingestion problems, with an actionable message. */
 export class GitHubIngestError extends Error {
@@ -93,11 +98,26 @@ export async function ingestGitHub(
       kind: classifyFileKind(entry.path),
     }));
 
+  const reader: FileContentReader = {
+    async read(path) {
+      const res = await doFetch(
+        `https://api.github.com/repos/${owner}/${repo}/contents/${path
+          .split('/')
+          .map(encodeURIComponent)
+          .join('/')}?ref=${encodeURIComponent(branch)}`,
+        { headers: { ...headers, Accept: 'application/vnd.github.raw+json' } },
+      );
+      if (!res.ok) return null;
+      return res.text();
+    },
+  };
+
   return {
     input: { ...input, branch },
     headSha: tree.sha,
     files,
     truncated: tree.truncated,
+    reader,
   };
 }
 

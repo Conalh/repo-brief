@@ -10,8 +10,10 @@ for the milestone sequence taking it from plan to shipped product.
 
 ## Status
 
-Early development. **Milestone 1 (walking skeleton)** is in progress: ingest a
-GitHub URL or local path and print a shallow brief from the CLI.
+Early development. Through **Milestone 2**: the CLI ingests a GitHub URL or local
+path and prints a brief with the detected tech stack (languages + frameworks),
+run/build/test commands, and entrypoints — backed by npm/Python/Rust/GitHub
+Actions manifest parsing.
 
 ## Monorepo layout
 

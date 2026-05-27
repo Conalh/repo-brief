@@ -1,4 +1,12 @@
-import type { BriefReport, FileKind, RepoSnapshot } from '../types.js';
+import type {
+  BriefReport,
+  Commands,
+  Entrypoint,
+  FileKind,
+  Manifest,
+  RepoSnapshot,
+  TechStack,
+} from '../types.js';
 
 const ALL_KINDS: FileKind[] = [
   'source',
@@ -11,12 +19,30 @@ const ALL_KINDS: FileKind[] = [
   'unknown',
 ];
 
+/** The analysis inputs layered onto the base snapshot summary. */
+export interface BriefAnalysis {
+  manifests: Manifest[];
+  techStack: TechStack;
+  commands: Commands;
+  entrypoints: Entrypoint[];
+}
+
+const EMPTY_ANALYSIS: BriefAnalysis = {
+  manifests: [],
+  techStack: { languages: [], frameworks: [], packageManagers: [] },
+  commands: {},
+  entrypoints: [],
+};
+
 /**
- * Assemble the Milestone-1 brief from a snapshot: a one-line identity plus a
- * file-kind breakdown. Later milestones layer subsystems, hotspots, entrypoints,
- * and the reading path on top of this same shape.
+ * Assemble the brief from a snapshot plus optional analysis. With no analysis
+ * this yields the Milestone-1 shallow brief; with analysis it includes the
+ * tech stack, commands, and entrypoints (Milestone 2).
  */
-export function assembleBrief(snapshot: RepoSnapshot): BriefReport {
+export function assembleBrief(
+  snapshot: RepoSnapshot,
+  analysis: BriefAnalysis = EMPTY_ANALYSIS,
+): BriefReport {
   const kindBreakdown = Object.fromEntries(
     ALL_KINDS.map((kind) => [kind, 0]),
   ) as Record<FileKind, number>;
@@ -30,12 +56,23 @@ export function assembleBrief(snapshot: RepoSnapshot): BriefReport {
       ? `${snapshot.input.owner}/${snapshot.input.repo}`
       : snapshot.input.repo;
 
-  const identity = `${name}: ${snapshot.files.length} files, ${kindBreakdown.source} source / ${kindBreakdown.test} test / ${kindBreakdown.docs} docs.`;
+  const { techStack } = analysis;
+  const stackBits = [
+    techStack.primaryLanguage,
+    ...techStack.frameworks.map((f) => f.name),
+  ].filter(Boolean);
+  const stackPhrase = stackBits.length > 0 ? ` ${stackBits.join(' + ')}.` : '';
+
+  const identity = `${name}:${stackPhrase} ${snapshot.files.length} files, ${kindBreakdown.source} source / ${kindBreakdown.test} test / ${kindBreakdown.docs} docs.`;
 
   return {
     identity,
     fileCount: snapshot.files.length,
     kindBreakdown,
+    techStack,
+    commands: analysis.commands,
+    entrypoints: analysis.entrypoints,
+    manifests: analysis.manifests,
     partial: snapshot.truncated,
     generatedAt: new Date().toISOString(),
   };
@@ -51,6 +88,39 @@ export function renderBriefMarkdown(brief: BriefReport): string {
     lines.push('');
     lines.push('> ⚠️ This brief is **partial** — the source tree was truncated.');
   }
+
+  const { techStack, commands, entrypoints } = brief;
+
+  if (techStack.languages.length > 0 || techStack.frameworks.length > 0) {
+    lines.push('');
+    lines.push('## Tech stack');
+    lines.push('');
+    if (techStack.languages.length > 0) {
+      lines.push(`- **Languages:** ${techStack.languages.join(', ')}`);
+    }
+    for (const fw of techStack.frameworks) {
+      lines.push(`- **${fw.name}** _(${fw.confidence})_ — ${fw.evidence.join('; ')}`);
+    }
+  }
+
+  if (commands.dev || commands.build || commands.test) {
+    lines.push('');
+    lines.push('## How to run');
+    lines.push('');
+    if (commands.dev) lines.push(`- **Dev:** \`${commands.dev}\``);
+    if (commands.build) lines.push(`- **Build:** \`${commands.build}\``);
+    if (commands.test) lines.push(`- **Test:** \`${commands.test}\``);
+  }
+
+  if (entrypoints.length > 0) {
+    lines.push('');
+    lines.push('## Entrypoints');
+    lines.push('');
+    for (const ep of entrypoints) {
+      lines.push(`- **${ep.kind}:** \`${ep.path}\` — ${ep.evidence}`);
+    }
+  }
+
   lines.push('');
   lines.push('## File breakdown');
   lines.push('');

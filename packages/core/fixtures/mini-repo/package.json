@@ -2,7 +2,15 @@
   "name": "mini-repo",
   "version": "1.0.0",
   "scripts": {
-    "build": "tsc",
+    "dev": "next dev",
+    "build": "next build",
     "test": "vitest run"
+  },
+  "dependencies": {
+    "next": "^15.0.0",
+    "react": "^19.0.0"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

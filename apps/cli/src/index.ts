@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { existsSync } from 'node:fs';
 import {
-  assembleBrief,
+  analyzeSnapshot,
   ingestGitHub,
   ingestLocal,
   parseGitHubUrl,
@@ -25,7 +25,7 @@ async function inspect(target: string): Promise<number> {
     snapshot = await ingestGitHub(input, { token: process.env.GITHUB_TOKEN });
   }
 
-  const brief = assembleBrief(snapshot);
+  const brief = await analyzeSnapshot(snapshot);
   process.stdout.write(renderBriefMarkdown(brief) + '\n');
   return 0;
 }
