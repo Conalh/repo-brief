@@ -192,23 +192,45 @@ pnpm typecheck
 pnpm build
 ```
 
+## Use with an AI agent (MCP)
+
+`apps/mcp` is a Model Context Protocol server exposing `inspect_repo` and
+`repo_graph` tools, so an agent can orient itself in a repo before working in it.
+Register it with any MCP client (e.g. Claude Code / Claude Desktop):
+
+```json
+{
+  "mcpServers": {
+    "repobrief": {
+      "command": "npx",
+      "args": ["-y", "@repobrief/mcp"],
+      "env": { "GITHUB_TOKEN": "<optional, for higher rate limits>" }
+    }
+  }
+}
+```
+
+Then ask the agent to "brief owner/repo" or "brief this directory" and it will call
+the tool and read the result.
+
 ## Deploy
 
-The web app runs anywhere Next.js does. Its SQLite store fits single-instance hosts
-with a persistent disk (a VPS, Fly.io, Render); serverless platforms need a hosted
-DB swap — the store is isolated behind three functions. Full notes, env vars, and a
-`vercel.json` are in [`docs/DEPLOY.md`](./docs/DEPLOY.md).
+The web app runs anywhere Next.js does. Its store auto-selects **SQLite** (local /
+single-instance hosts with a persistent disk) or **libSQL/Turso** when
+`TURSO_DATABASE_URL` is set (serverless). Full notes, env vars, and a `vercel.json`
+are in [`docs/DEPLOY.md`](./docs/DEPLOY.md).
 
 ## Architecture
 
-A TypeScript monorepo (pnpm + Turborepo): one analysis engine, two thin surfaces.
+A TypeScript monorepo (pnpm + Turborepo): one analysis engine, three thin surfaces.
 
 ```mermaid
 graph LR
   cli["apps/cli"] --> core["packages/core (engine)"]
   web["apps/web (Next.js)"] --> core
+  mcp["apps/mcp (MCP server)"] --> core
   core --> ingest["ingest: GitHub API / local fs"]
-  core --> analyze["analyze: manifests, graph, hotspots, reading path"]
+  core --> analyze["analyze: manifests, graph, routes, cycles, hotspots, reading path"]
   core --> report["report: brief + Markdown + Mermaid"]
 ```
 
@@ -217,6 +239,7 @@ graph LR
 | `packages/core` | Analysis engine: ingest → classify → graph → report. |
 | `apps/cli` | `repobrief` command-line tool. |
 | `apps/web` | Next.js app: paste a URL, browse the brief, export Markdown. |
+| `apps/mcp` | MCP server so an AI agent can brief a repo before working in it. |
 
 See [`PLAN.md`](./PLAN.md) for the full product spec and [`ROADMAP.md`](./ROADMAP.md)
 for the milestone sequence that took it from plan to working software.

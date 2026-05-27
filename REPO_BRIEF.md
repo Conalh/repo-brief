@@ -1,6 +1,6 @@
 # RepoBrief
 
-repo-brief: TypeScript + Next.js + React. 113 files, 56 source / 28 test / 6 docs.
+repo-brief: TypeScript + Next.js + React. 117 files, 58 source / 28 test / 6 docs.
 
 ## Tech stack
 
@@ -20,14 +20,16 @@ repo-brief: TypeScript + Next.js + React. 113 files, 56 source / 28 test / 6 doc
 ## Architecture
 
 - **core** (29 files)
-- **web** (26 files)
+- **web** (27 files)
 - **cli** (1 files)
+- **mcp** (1 files)
 
 ```mermaid
 graph LR
   n0["core (29)"]
-  n1["web (26)"]
+  n1["web (27)"]
   n2["cli (1)"]
+  n3["mcp (1)"]
 ```
 
 ## Routes
@@ -60,32 +62,32 @@ _Safe to skip: 1 generated/asset files._
 
 ## Hotspots
 
-- `packages/core/src/types.ts` _(score 6)_ — high fan-in (25 importers), frequently changed (7 recent commits), no nearby tests. Core module — many files depend on it; change with care.
-- `packages/core/src/analyze/pipeline.ts` _(score 3)_ — high fan-out (12 imports), frequently changed (6 recent commits). Actively churning — recent, frequent edits; expect it to keep moving.
-- `packages/core/src/index.ts` _(score 3)_ — high fan-out (18 imports), frequently changed (5 recent commits). Actively churning — recent, frequent edits; expect it to keep moving.
+- `packages/core/src/types.ts` _(score 6)_ — high fan-in (25 importers), frequently changed (8 recent commits), no nearby tests. Core module — many files depend on it; change with care.
+- `packages/core/src/analyze/pipeline.ts` _(score 3)_ — high fan-out (12 imports), frequently changed (7 recent commits). Actively churning — recent, frequent edits; expect it to keep moving.
+- `packages/core/src/index.ts` _(score 3)_ — high fan-out (18 imports), frequently changed (6 recent commits). Actively churning — recent, frequent edits; expect it to keep moving.
 - `apps/cli/src/index.ts` _(score 2)_ — frequently changed (4 recent commits). Actively churning — recent, frequent edits; expect it to keep moving.
 - `apps/web/app/api/briefs/[id]/export.md/route.ts` _(score 2)_ — no nearby tests. No tests found — verify behavior before changing.
 - `apps/web/app/api/briefs/[id]/route.ts` _(score 2)_ — no nearby tests. No tests found — verify behavior before changing.
 - `apps/web/app/api/briefs/route.ts` _(score 2)_ — no nearby tests. No tests found — verify behavior before changing.
 - `apps/web/app/api/demo/briefs/route.ts` _(score 2)_ — no nearby tests. No tests found — verify behavior before changing.
 - `apps/web/app/api/demo/seed/route.ts` _(score 2)_ — no nearby tests. No tests found — verify behavior before changing.
+- `apps/web/app/briefs/[id]/architecture/page.tsx` _(score 2)_ — frequently changed (3 recent commits). Actively churning — recent, frequent edits; expect it to keep moving.
 - `apps/web/app/briefs/[id]/layout.tsx` _(score 2)_ — no nearby tests. No tests found — verify behavior before changing.
 - `apps/web/app/layout.tsx` _(score 2)_ — no nearby tests. No tests found — verify behavior before changing.
 - `apps/web/components/brief-nav.tsx` _(score 2)_ — no nearby tests. No tests found — verify behavior before changing.
+- `apps/web/components/mermaid-graph.tsx` _(score 2)_ — no nearby tests. No tests found — verify behavior before changing.
 - `apps/web/components/repo-input.tsx` _(score 2)_ — no nearby tests. No tests found — verify behavior before changing.
-- `apps/web/lib/analyze-service.ts` _(score 2)_ — frequently changed (4 recent commits). Actively churning — recent, frequent edits; expect it to keep moving.
-- `apps/web/lib/store.ts` _(score 2)_ — frequently changed (3 recent commits). Actively churning — recent, frequent edits; expect it to keep moving.
 
 ## File breakdown
 
 | Kind | Count |
 | --- | ---: |
-| source | 56 |
+| source | 58 |
 | test | 28 |
 | docs | 6 |
-| config | 15 |
+| config | 17 |
 | workflow | 1 |
 | generated | 1 |
 | unknown | 6 |
 
-_Generated 2026-05-27T05:08:33.657Z · deep mode._
+_Generated 2026-05-27T05:16:35.828Z · deep mode._
