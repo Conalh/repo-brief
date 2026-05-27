@@ -6,6 +6,8 @@ import { computeDegrees } from '../graph/index.js';
 const HIGH_LINES = 300;
 const HIGH_FAN_IN = 5;
 const HIGH_FAN_OUT = 10;
+/** A file is "high churn" if it changed in at least this many recent commits. */
+const HIGH_CHURN = 3;
 const MAX_HOTSPOTS = 15;
 
 /** Filenames that hint at grab-bag responsibility (PLAN heuristic). */
@@ -67,6 +69,7 @@ export function detectHotspots(
   files: FileNode[],
   edges: ImportEdge[],
   lineCounts: Map<string, number>,
+  churn: Map<string, number> = new Map(),
 ): Hotspot[] {
   const degrees = computeDegrees(edges);
   const coverage = testCoverage(files);
@@ -92,6 +95,11 @@ export function detectHotspots(
       score += 1;
       reasons.push(`high fan-out (${degree.fanOut} imports)`);
     }
+    const changes = churn.get(file.path) ?? 0;
+    if (changes >= HIGH_CHURN) {
+      score += 2;
+      reasons.push(`frequently changed (${changes} recent commits)`);
+    }
     if (!hasNearbyTests(file.path, coverage)) {
       score += 2;
       reasons.push('no nearby tests');
@@ -115,6 +123,9 @@ export function detectHotspots(
 function recommend(reasons: string[]): string {
   if (reasons.some((r) => r.startsWith('high fan-in'))) {
     return 'Core module — many files depend on it; change with care.';
+  }
+  if (reasons.some((r) => r.startsWith('frequently changed'))) {
+    return 'Actively churning — recent, frequent edits; expect it to keep moving.';
   }
   if (reasons.some((r) => r.startsWith('large file'))) {
     return 'Large file — consider reading in sections or splitting.';

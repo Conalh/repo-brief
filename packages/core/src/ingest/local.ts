@@ -1,12 +1,44 @@
+import { execFile } from 'node:child_process';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { basename, join, relative, resolve, sep } from 'node:path';
+import { promisify } from 'node:util';
 import { classifyFileKind, extensionOf } from '../classify/file-kind.js';
 import type {
+  ChurnProvider,
   FileContentReader,
   FileNode,
   RepositoryInput,
   RepoSnapshot,
 } from '../types.js';
+
+const execFileAsync = promisify(execFile);
+
+/**
+ * Churn from local git history: counts how many of the last `commitLimit`
+ * commits touched each file. Returns an empty map if the directory is not a git
+ * repo or git is unavailable.
+ */
+function localChurnProvider(root: string): ChurnProvider {
+  return {
+    async recentChanges(commitLimit) {
+      const counts = new Map<string, number>();
+      try {
+        const { stdout } = await execFileAsync(
+          'git',
+          ['-C', root, 'log', `-n${commitLimit}`, '--name-only', '--pretty=format:'],
+          { maxBuffer: 32 * 1024 * 1024 },
+        );
+        for (const line of stdout.split(/\r?\n/)) {
+          const path = line.trim();
+          if (path) counts.set(path, (counts.get(path) ?? 0) + 1);
+        }
+      } catch {
+        // Not a git repo, or git not installed — churn simply unavailable.
+      }
+      return counts;
+    },
+  };
+}
 
 /** Directory names never worth walking into for a V1 snapshot. */
 const SKIP_DIRS = new Set([
@@ -93,5 +125,5 @@ export async function ingestLocal(
     },
   };
 
-  return { input, files, truncated, reader };
+  return { input, files, truncated, reader, churn: localChurnProvider(root) };
 }

@@ -50,9 +50,15 @@ export async function analyzeSnapshot(
     ({ edges, lineCounts } = await buildImportGraph(snapshot, graphOptions));
   }
 
+  // Deep mode adds commit-history churn to hotspot scoring when available.
+  let churn = new Map<string, number>();
+  if (mode === 'deep' && snapshot.churn) {
+    churn = await snapshot.churn.recentChanges(50);
+  }
+
   const subsystems = buildSubsystems(snapshot.files, edges);
   const architectureMermaid = renderSubsystemMermaid(subsystems);
-  const hotspots = detectHotspots(snapshot.files, edges, lineCounts);
+  const hotspots = detectHotspots(snapshot.files, edges, lineCounts, churn);
   const readingPath = buildReadingPath({
     files: snapshot.files,
     entrypoints,

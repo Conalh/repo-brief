@@ -1,5 +1,6 @@
 import { classifyFileKind, extensionOf } from '../classify/file-kind.js';
 import type {
+  ChurnProvider,
   FileContentReader,
   FileNode,
   RepositoryInput,
@@ -112,12 +113,47 @@ export async function ingestGitHub(
     },
   };
 
+  const churn: ChurnProvider = {
+    async recentChanges(commitLimit) {
+      const counts = new Map<string, number>();
+      const perPage = Math.min(commitLimit, 100);
+      const listRes = await doFetch(
+        `https://api.github.com/repos/${owner}/${repo}/commits?sha=${encodeURIComponent(
+          branch,
+        )}&per_page=${perPage}`,
+        { headers },
+      );
+      if (!listRes.ok) return counts;
+      const list = (await listRes.json()) as { sha: string }[];
+
+      // Each commit's file list needs a per-commit fetch; bound concurrency.
+      let cursor = 0;
+      const worker = async (): Promise<void> => {
+        while (cursor < list.length) {
+          const sha = list[cursor++]!.sha;
+          const res = await doFetch(
+            `https://api.github.com/repos/${owner}/${repo}/commits/${sha}`,
+            { headers },
+          );
+          if (!res.ok) continue;
+          const detail = (await res.json()) as { files?: { filename: string }[] };
+          for (const file of detail.files ?? []) {
+            counts.set(file.filename, (counts.get(file.filename) ?? 0) + 1);
+          }
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(8, list.length) }, worker));
+      return counts;
+    },
+  };
+
   return {
     input: { ...input, branch },
     headSha: tree.sha,
     files,
     truncated: tree.truncated,
     reader,
+    churn,
   };
 }
 

@@ -23,4 +23,13 @@ describe('ingestLocal', () => {
     expect(snapshot.truncated).toBe(true);
     expect(snapshot.files).toHaveLength(1);
   });
+
+  it('exposes a churn provider that reads local git history', async () => {
+    // The monorepo root is a git repo with commits.
+    const repoRoot = join(here, '..', '..', '..', '..');
+    const snapshot = await ingestLocal(repoRoot);
+    const churn = await snapshot.churn!.recentChanges(30);
+    expect(churn.size).toBeGreaterThan(0);
+    for (const count of churn.values()) expect(count).toBeGreaterThanOrEqual(1);
+  });
 });

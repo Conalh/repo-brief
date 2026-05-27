@@ -44,7 +44,10 @@ _Safe to skip: 1 generated/asset files._
 
 ## Hotspots
 
-- `packages/core/src/types.ts` _(score 4)_ — high fan-in (21 importers), no nearby tests. Core module — many files depend on it; change with care.
+- `packages/core/src/types.ts` _(score 6)_ — high fan-in (21 importers), frequently changed (5 recent commits), no nearby tests. Core module — many files depend on it; change with care.
+- `packages/core/src/analyze/pipeline.ts` _(score 3)_ — high fan-out (10 imports), frequently changed (4 recent commits). Actively churning — recent, frequent edits; expect it to keep moving.
+- `packages/core/src/index.ts` _(score 3)_ — high fan-out (16 imports), frequently changed (4 recent commits). Actively churning — recent, frequent edits; expect it to keep moving.
+- `apps/cli/src/index.ts` _(score 2)_ — frequently changed (4 recent commits). Actively churning — recent, frequent edits; expect it to keep moving.
 - `apps/web/app/api/briefs/[id]/export.md/route.ts` _(score 2)_ — no nearby tests. No tests found — verify behavior before changing.
 - `apps/web/app/api/briefs/[id]/route.ts` _(score 2)_ — no nearby tests. No tests found — verify behavior before changing.
 - `apps/web/app/api/briefs/route.ts` _(score 2)_ — no nearby tests. No tests found — verify behavior before changing.
@@ -53,12 +56,9 @@ _Safe to skip: 1 generated/asset files._
 - `apps/web/app/layout.tsx` _(score 2)_ — no nearby tests. No tests found — verify behavior before changing.
 - `apps/web/components/brief-nav.tsx` _(score 2)_ — no nearby tests. No tests found — verify behavior before changing.
 - `apps/web/components/repo-input.tsx` _(score 2)_ — no nearby tests. No tests found — verify behavior before changing.
+- `apps/web/lib/analyze-service.ts` _(score 2)_ — frequently changed (3 recent commits). Actively churning — recent, frequent edits; expect it to keep moving.
 - `apps/web/next-env.d.ts` _(score 2)_ — no nearby tests. No tests found — verify behavior before changing.
 - `apps/web/postcss.config.mjs` _(score 2)_ — no nearby tests. No tests found — verify behavior before changing.
-- `apps/web/scripts/seed-demos.ts` _(score 2)_ — no nearby tests. No tests found — verify behavior before changing.
-- `apps/web/vitest.config.ts` _(score 2)_ — no nearby tests. No tests found — verify behavior before changing.
-- `packages/core/vitest.config.ts` _(score 2)_ — no nearby tests. No tests found — verify behavior before changing.
-- `packages/core/src/analyze/pipeline.ts` _(score 1)_ — high fan-out (10 imports). Worth a look.
 
 ## File breakdown
 
@@ -72,4 +72,4 @@ _Safe to skip: 1 generated/asset files._
 | generated | 1 |
 | unknown | 5 |
 
-_Generated 2026-05-27T04:43:06.247Z · deep mode._
+_Generated 2026-05-27T04:47:55.759Z · deep mode._

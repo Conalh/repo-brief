@@ -80,7 +80,7 @@ rate limit from 60 to 5000 requests/hour.
 ```bash
 repobrief inspect . --mode fast       # metadata, manifests, entrypoints (no graph)
 repobrief inspect . --mode balanced   # default: + import graph, subsystems, hotspots
-repobrief inspect . --mode deep       # balanced with higher file caps
+repobrief inspect . --mode deep       # balanced + higher caps + commit-history churn
 ```
 
 ### Web app
@@ -135,7 +135,8 @@ a conventional file agree, `medium` for a single signal.
   | Broad-responsibility name (`utils`, `helpers`, `manager`, `controller`) | +1 | Likely mixes concerns |
 
   "Nearby tests" counts a same-stem test *or* any test in the same directory, so
-  well-tested folders aren't flagged. (Churn-based scoring is a planned deep-mode addition.)
+  well-tested folders aren't flagged. In **deep mode**, an additional +2 high-churn
+  signal is added from commit history (local `git log`, or the GitHub commits API).
 
 - **Reading path** — an ordered onboarding route: README → manifest → entrypoints →
   most-depended-on core modules → a real test, plus a skip list of generated/asset files.
@@ -213,10 +214,10 @@ for the milestone sequence that took it from plan to working software.
 
 ## Status
 
-V1 feature-complete: CLI and web both work end-to-end against real repos. Known
-gaps, tracked honestly — deep-mode **churn analysis** (commit history) is not yet
-implemented (deep currently just raises file caps), and the web store needs a
-Postgres/Turso swap before a serverless deploy.
+V1 feature-complete: CLI and web both work end-to-end against real repos, with
+deep-mode churn analysis from commit history. The remaining item before a
+serverless deploy is swapping the web's SQLite store for a hosted DB
+(Postgres/Turso) — see [`docs/DEPLOY.md`](./docs/DEPLOY.md).
 
 ## License
 

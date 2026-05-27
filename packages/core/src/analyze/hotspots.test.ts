@@ -48,4 +48,18 @@ describe('detectHotspots', () => {
     const hotspots = detectHotspots(files, edges, lineCounts);
     expect(hotspots.some((h) => h.path === 'src/small.ts')).toBe(false);
   });
+
+  it('adds a high-churn signal when commit history is supplied', () => {
+    // small.ts is otherwise unflagged; heavy recent churn should surface it.
+    const churn = new Map([['src/small.ts', 9]]);
+    const hotspots = detectHotspots(files, edges, lineCounts, churn);
+    const small = hotspots.find((h) => h.path === 'src/small.ts');
+    expect(small?.reasons).toContain('frequently changed (9 recent commits)');
+  });
+
+  it('ignores churn below the threshold', () => {
+    const churn = new Map([['src/small.ts', 1]]);
+    const hotspots = detectHotspots(files, edges, lineCounts, churn);
+    expect(hotspots.some((h) => h.path === 'src/small.ts')).toBe(false);
+  });
 });

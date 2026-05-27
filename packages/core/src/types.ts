@@ -61,6 +61,16 @@ export interface FileContentReader {
   read(path: string): Promise<string | null>;
 }
 
+/**
+ * Provides recent change frequency (churn) per file from commit history.
+ * Used only in deep mode. Implementations return an empty map when history is
+ * unavailable (e.g. a non-git local dir, or a rate-limited API).
+ */
+export interface ChurnProvider {
+  /** Map of repo-relative path -> number of recent commits that touched it. */
+  recentChanges(commitLimit: number): Promise<Map<string, number>>;
+}
+
 /** The raw ingested snapshot before deep analysis. */
 export interface RepoSnapshot {
   input: RepositoryInput;
@@ -71,6 +81,8 @@ export interface RepoSnapshot {
   truncated: boolean;
   /** Reads file contents on demand; used by manifest/framework detectors. */
   reader: FileContentReader;
+  /** Recent-change frequency source for deep mode; absent when unavailable. */
+  churn?: ChurnProvider;
 }
 
 export type PackageManager = 'npm' | 'python' | 'rust' | 'github_actions';
