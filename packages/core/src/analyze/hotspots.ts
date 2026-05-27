@@ -70,6 +70,7 @@ export function detectHotspots(
   edges: ImportEdge[],
   lineCounts: Map<string, number>,
   churn: Map<string, number> = new Map(),
+  cycleMembers: ReadonlySet<string> = new Set(),
 ): Hotspot[] {
   const degrees = computeDegrees(edges);
   const coverage = testCoverage(files);
@@ -107,6 +108,10 @@ export function detectHotspots(
     if (BROAD_NAMES.has(stem(file.path))) {
       score += 1;
       reasons.push('broad-responsibility name');
+    }
+    if (cycleMembers.has(file.path)) {
+      score += 1;
+      reasons.push('in an import cycle');
     }
 
     if (score > 0) {

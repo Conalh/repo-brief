@@ -196,6 +196,8 @@ export interface BriefReport {
   subsystems: Subsystem[];
   /** Mermaid source for the subsystem dependency graph (Milestone 3). */
   architectureMermaid: string;
+  /** Circular import groups (each a set of files that import each other). */
+  cycles: string[][];
   /** Files worth attention, highest score first (Milestone 4). */
   hotspots: Hotspot[];
   /** Ordered onboarding reading path (Milestone 4). */

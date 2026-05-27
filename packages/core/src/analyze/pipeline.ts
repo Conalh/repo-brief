@@ -1,5 +1,6 @@
 import { detectTechStack } from '../classify/framework.js';
 import { buildImportGraph, type ImportGraphOptions } from '../graph/index.js';
+import { findCycles } from '../graph/cycles.js';
 import { assembleBrief } from '../report/brief.js';
 import { renderSubsystemMermaid } from '../report/mermaid.js';
 import type { BriefMode, BriefReport, ImportEdge, RepoSnapshot } from '../types.js';
@@ -58,7 +59,9 @@ export async function analyzeSnapshot(
 
   const subsystems = buildSubsystems(snapshot.files, edges);
   const architectureMermaid = renderSubsystemMermaid(subsystems);
-  const hotspots = detectHotspots(snapshot.files, edges, lineCounts, churn);
+  const cycles = findCycles(edges);
+  const cycleMembers = new Set(cycles.flat());
+  const hotspots = detectHotspots(snapshot.files, edges, lineCounts, churn, cycleMembers);
   const readingPath = buildReadingPath({
     files: snapshot.files,
     entrypoints,
@@ -74,6 +77,7 @@ export async function analyzeSnapshot(
     entrypoints,
     subsystems,
     architectureMermaid,
+    cycles,
     hotspots,
     readingPath,
   });

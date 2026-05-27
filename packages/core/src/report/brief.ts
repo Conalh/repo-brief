@@ -32,6 +32,7 @@ export interface BriefAnalysis {
   entrypoints: Entrypoint[];
   subsystems: Subsystem[];
   architectureMermaid: string;
+  cycles: string[][];
   hotspots: Hotspot[];
   readingPath: ReadingPath;
 }
@@ -44,6 +45,7 @@ const EMPTY_ANALYSIS: BriefAnalysis = {
   entrypoints: [],
   subsystems: [],
   architectureMermaid: '',
+  cycles: [],
   hotspots: [],
   readingPath: { steps: [], skip: [] },
 };
@@ -90,6 +92,7 @@ export function assembleBrief(
     manifests: analysis.manifests,
     subsystems: analysis.subsystems,
     architectureMermaid: analysis.architectureMermaid,
+    cycles: analysis.cycles,
     hotspots: analysis.hotspots,
     readingPath: analysis.readingPath,
     partial: snapshot.truncated,
@@ -154,6 +157,18 @@ export function renderBriefMarkdown(brief: BriefReport): string {
       lines.push('```mermaid');
       lines.push(brief.architectureMermaid);
       lines.push('```');
+    }
+  }
+
+  if (brief.cycles.length > 0) {
+    lines.push('');
+    lines.push('## Circular dependencies');
+    lines.push('');
+    lines.push(
+      `${brief.cycles.length} import cycle${brief.cycles.length > 1 ? 's' : ''} detected:`,
+    );
+    for (const cycle of brief.cycles.slice(0, 10)) {
+      lines.push(`- ${cycle.join(' → ')} → …`);
     }
   }
 

@@ -30,6 +30,7 @@ const analysis: BriefAnalysis = {
     { name: 'src', pathPrefix: 'src', fileCount: 1, dependsOn: [], confidence: 'medium' },
   ],
   architectureMermaid: 'graph LR\n  n0["app (1)"]\n  n1["src (1)"]\n  n0 --> n1',
+  cycles: [],
   hotspots: [
     {
       path: 'src/index.ts',
