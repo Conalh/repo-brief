@@ -2,9 +2,11 @@ import { detectTechStack } from '../classify/framework.js';
 import { buildImportGraph, type ImportGraphOptions } from '../graph/index.js';
 import { assembleBrief } from '../report/brief.js';
 import { renderSubsystemMermaid } from '../report/mermaid.js';
-import type { BriefReport, RepoSnapshot } from '../types.js';
+import type { BriefReport, ImportEdge, RepoSnapshot } from '../types.js';
 import { detectCommands, detectEntrypoints } from './entrypoints.js';
+import { detectHotspots } from './hotspots.js';
 import { collectManifests } from './manifests/index.js';
+import { buildReadingPath } from './reading-path.js';
 import { buildSubsystems } from './subsystems.js';
 
 export interface AnalyzeOptions {
@@ -27,11 +29,21 @@ export async function analyzeSnapshot(
   const commands = detectCommands(manifests);
   const entrypoints = detectEntrypoints(snapshot);
 
-  const edges = options.skipGraph
-    ? []
-    : await buildImportGraph(snapshot, options.graph);
+  let edges: ImportEdge[] = [];
+  let lineCounts = new Map<string, number>();
+  if (!options.skipGraph) {
+    ({ edges, lineCounts } = await buildImportGraph(snapshot, options.graph));
+  }
+
   const subsystems = buildSubsystems(snapshot.files, edges);
   const architectureMermaid = renderSubsystemMermaid(subsystems);
+  const hotspots = detectHotspots(snapshot.files, edges, lineCounts);
+  const readingPath = buildReadingPath({
+    files: snapshot.files,
+    entrypoints,
+    manifests,
+    edges,
+  });
 
   return assembleBrief(snapshot, {
     manifests,
@@ -40,5 +52,7 @@ export async function analyzeSnapshot(
     entrypoints,
     subsystems,
     architectureMermaid,
+    hotspots,
+    readingPath,
   });
 }

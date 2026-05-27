@@ -34,4 +34,11 @@ describe('analyzeSnapshot (end-to-end over the fixture)', () => {
     expect(app?.dependsOn).toContain('src');
     expect(brief.architectureMermaid).toContain('graph LR');
   });
+
+  it('produces a reading path starting at the README', async () => {
+    const snapshot = await ingestLocal(fixture);
+    const brief = await analyzeSnapshot(snapshot);
+    expect(brief.readingPath.steps[0]?.path).toBe('README.md');
+    expect(brief.readingPath.steps.some((s) => s.path === 'app/page.tsx')).toBe(true);
+  });
 });

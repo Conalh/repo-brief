@@ -20,16 +20,23 @@ export interface ImportGraphOptions {
   concurrency?: number;
 }
 
+export interface ImportGraphResult {
+  edges: ImportEdge[];
+  /** Line counts for every source file that was read, by path. */
+  lineCounts: Map<string, number>;
+}
+
 /**
  * Build the in-repo import graph for a snapshot. Reads JS/TS and Python source
  * files (up to `maxFiles`), extracts import specifiers, and resolves them to
  * other files in the snapshot. External (node_modules / stdlib) imports are
- * dropped — only edges between repo files are kept.
+ * dropped — only edges between repo files are kept. Line counts are captured
+ * from the same read so hotspot scoring needs no second pass.
  */
 export async function buildImportGraph(
   snapshot: RepoSnapshot,
   options: ImportGraphOptions = {},
-): Promise<ImportEdge[]> {
+): Promise<ImportGraphResult> {
   const maxFiles = options.maxFiles ?? 1500;
   const concurrency = options.concurrency ?? 12;
   const fileSet = new Set(snapshot.files.map((f) => f.path));
@@ -42,11 +49,13 @@ export async function buildImportGraph(
     .slice(0, maxFiles);
 
   const edges: ImportEdge[] = [];
+  const lineCounts = new Map<string, number>();
   const seen = new Set<string>();
 
   await mapPool(sources, concurrency, async (file) => {
     const content = await snapshot.reader.read(file.path);
     if (content === null) return;
+    lineCounts.set(file.path, countLines(content));
     for (const edge of edgesFor(file, content, fileSet, alias)) {
       const key = `${edge.from}|${edge.to}|${edge.kind}`;
       if (seen.has(key)) continue;
@@ -55,7 +64,43 @@ export async function buildImportGraph(
     }
   });
 
-  return edges;
+  return { edges, lineCounts };
+}
+
+export interface Degree {
+  /** Number of distinct files that import this file. */
+  fanIn: number;
+  /** Number of distinct files this file imports. */
+  fanOut: number;
+}
+
+/** Compute fan-in / fan-out for every file referenced by the edges. */
+export function computeDegrees(edges: ImportEdge[]): Map<string, Degree> {
+  const degrees = new Map<string, Degree>();
+  const get = (path: string): Degree => {
+    let d = degrees.get(path);
+    if (!d) {
+      d = { fanIn: 0, fanOut: 0 };
+      degrees.set(path, d);
+    }
+    return d;
+  };
+  for (const edge of edges) {
+    get(edge.from).fanOut++;
+    get(edge.to).fanIn++;
+  }
+  return degrees;
+}
+
+/** Count lines in a text blob (number of newlines, +1 for trailing content). */
+function countLines(content: string): number {
+  if (content === '') return 0;
+  let lines = 1;
+  for (let i = 0; i < content.length; i++) {
+    if (content.charCodeAt(i) === 10) lines++;
+  }
+  // A trailing newline shouldn't inflate the count.
+  return content.endsWith('\n') ? lines - 1 : lines;
 }
 
 function isGraphable(file: FileNode): boolean {

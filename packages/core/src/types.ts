@@ -39,6 +39,8 @@ export interface FileNode {
   extension: string;
   /** Size in bytes when known. */
   sizeBytes?: number;
+  /** Line count, filled when the file's content is read (graph pass). */
+  lineCount?: number;
   kind: FileKind;
 }
 
@@ -125,6 +127,26 @@ export interface Subsystem {
   confidence: Confidence;
 }
 
+/** A file flagged as worth attention, with the signals that flagged it. */
+export interface Hotspot {
+  path: string;
+  score: number;
+  reasons: string[];
+  recommendation: string;
+}
+
+/** One step in the onboarding reading path. */
+export interface ReadingStep {
+  path: string;
+  reason: string;
+}
+
+/** An ordered "read these first" path plus files safe to skip. */
+export interface ReadingPath {
+  steps: ReadingStep[];
+  skip: string[];
+}
+
 export type EntrypointKind = 'app' | 'api' | 'cli' | 'test' | 'build';
 
 /** A notable entry file with the reason it was flagged. */
@@ -152,6 +174,10 @@ export interface BriefReport {
   subsystems: Subsystem[];
   /** Mermaid source for the subsystem dependency graph (Milestone 3). */
   architectureMermaid: string;
+  /** Files worth attention, highest score first (Milestone 4). */
+  hotspots: Hotspot[];
+  /** Ordered onboarding reading path (Milestone 4). */
+  readingPath: ReadingPath;
   /** True if the underlying snapshot was partial. */
   partial: boolean;
   generatedAt: string;

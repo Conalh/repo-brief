@@ -29,6 +29,21 @@ const analysis: BriefAnalysis = {
     { name: 'src', pathPrefix: 'src', fileCount: 1, dependsOn: [], confidence: 'medium' },
   ],
   architectureMermaid: 'graph LR\n  n0["app (1)"]\n  n1["src (1)"]\n  n0 --> n1',
+  hotspots: [
+    {
+      path: 'src/index.ts',
+      score: 4,
+      reasons: ['high fan-in (5 importers)', 'no nearby tests'],
+      recommendation: 'Core module — many files depend on it; change with care.',
+    },
+  ],
+  readingPath: {
+    steps: [
+      { path: 'README.md', reason: 'Project overview.' },
+      { path: 'app/page.tsx', reason: 'Entry point (app).' },
+    ],
+    skip: ['dist/bundle.js'],
+  },
 };
 
 describe('assembleBrief', () => {
@@ -59,6 +74,8 @@ describe('assembleBrief', () => {
     expect(md).toContain('app/page.tsx');
     expect(md).toContain('## Architecture');
     expect(md).toContain('```mermaid');
+    expect(md).toContain('## Where to start');
+    expect(md).toContain('## Hotspots');
     expect(md).toContain('| source | 1 |');
   });
 });

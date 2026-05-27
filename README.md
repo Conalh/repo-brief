@@ -10,11 +10,12 @@ for the milestone sequence taking it from plan to shipped product.
 
 ## Status
 
-Early development. Through **Milestone 3**: the CLI ingests a GitHub URL or local
-path and prints a brief with the detected tech stack (languages + frameworks),
-run/build/test commands, entrypoints, and a **subsystem architecture map** with a
-Mermaid graph — backed by npm/Python/Rust/GitHub Actions manifest parsing and a
-JS/TS + Python import graph.
+Early development. The analysis engine is feature-complete for V1: the CLI
+ingests a GitHub URL or local path and prints a brief with the detected tech
+stack (languages + frameworks), run/build/test commands, entrypoints, a
+**subsystem architecture map** (Mermaid graph), a ranked **hotspot list**, and a
+**"where to start" reading path** — backed by npm/Python/Rust/GitHub Actions
+manifest parsing and a JS/TS + Python import graph. The web UI is next.
 
 ## Monorepo layout
 

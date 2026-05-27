@@ -3,7 +3,9 @@ import type {
   Commands,
   Entrypoint,
   FileKind,
+  Hotspot,
   Manifest,
+  ReadingPath,
   RepoSnapshot,
   Subsystem,
   TechStack,
@@ -28,6 +30,8 @@ export interface BriefAnalysis {
   entrypoints: Entrypoint[];
   subsystems: Subsystem[];
   architectureMermaid: string;
+  hotspots: Hotspot[];
+  readingPath: ReadingPath;
 }
 
 const EMPTY_ANALYSIS: BriefAnalysis = {
@@ -37,6 +41,8 @@ const EMPTY_ANALYSIS: BriefAnalysis = {
   entrypoints: [],
   subsystems: [],
   architectureMermaid: '',
+  hotspots: [],
+  readingPath: { steps: [], skip: [] },
 };
 
 /**
@@ -80,6 +86,8 @@ export function assembleBrief(
     manifests: analysis.manifests,
     subsystems: analysis.subsystems,
     architectureMermaid: analysis.architectureMermaid,
+    hotspots: analysis.hotspots,
+    readingPath: analysis.readingPath,
     partial: snapshot.truncated,
     generatedAt: new Date().toISOString(),
   };
@@ -142,6 +150,28 @@ export function renderBriefMarkdown(brief: BriefReport): string {
       lines.push('```mermaid');
       lines.push(brief.architectureMermaid);
       lines.push('```');
+    }
+  }
+
+  if (brief.readingPath.steps.length > 0) {
+    lines.push('');
+    lines.push('## Where to start');
+    lines.push('');
+    brief.readingPath.steps.forEach((step, i) => {
+      lines.push(`${i + 1}. \`${step.path}\` — ${step.reason}`);
+    });
+    if (brief.readingPath.skip.length > 0) {
+      lines.push('');
+      lines.push(`_Safe to skip: ${brief.readingPath.skip.length} generated/asset files._`);
+    }
+  }
+
+  if (brief.hotspots.length > 0) {
+    lines.push('');
+    lines.push('## Hotspots');
+    lines.push('');
+    for (const h of brief.hotspots) {
+      lines.push(`- \`${h.path}\` _(score ${h.score})_ — ${h.reasons.join(', ')}. ${h.recommendation}`);
     }
   }
 
