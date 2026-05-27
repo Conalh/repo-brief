@@ -10,10 +10,11 @@ for the milestone sequence taking it from plan to shipped product.
 
 ## Status
 
-Early development. Through **Milestone 2**: the CLI ingests a GitHub URL or local
+Early development. Through **Milestone 3**: the CLI ingests a GitHub URL or local
 path and prints a brief with the detected tech stack (languages + frameworks),
-run/build/test commands, and entrypoints — backed by npm/Python/Rust/GitHub
-Actions manifest parsing.
+run/build/test commands, entrypoints, and a **subsystem architecture map** with a
+Mermaid graph — backed by npm/Python/Rust/GitHub Actions manifest parsing and a
+JS/TS + Python import graph.
 
 ## Monorepo layout
 
@@ -39,6 +40,9 @@ pnpm cli inspect https://github.com/owner/repo
 
 # Or a local directory:
 pnpm cli inspect .
+
+# Just the Mermaid architecture graph:
+pnpm cli graph .
 ```
 
 Set `GITHUB_TOKEN` (see [`.env.example`](./.env.example)) to raise the GitHub
