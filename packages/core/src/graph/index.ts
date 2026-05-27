@@ -18,6 +18,8 @@ export interface ImportGraphOptions {
   maxFiles?: number;
   /** Concurrent reads. Default 12. */
   concurrency?: number;
+  /** Skip reading files larger than this many bytes. Default ~1.5MB. */
+  maxFileBytes?: number;
 }
 
 export interface ImportGraphResult {
@@ -39,13 +41,19 @@ export async function buildImportGraph(
 ): Promise<ImportGraphResult> {
   const maxFiles = options.maxFiles ?? 1500;
   const concurrency = options.concurrency ?? 12;
+  const maxFileBytes = options.maxFileBytes ?? 1_500_000;
   const fileSet = new Set(snapshot.files.map((f) => f.path));
 
   const aliasContent = await snapshot.reader.read('tsconfig.json');
   const alias = buildAliasResolver(aliasContent);
 
   const sources = snapshot.files
-    .filter((f) => f.kind === 'source' && isGraphable(f))
+    .filter(
+      (f) =>
+        f.kind === 'source' &&
+        isGraphable(f) &&
+        (f.sizeBytes === undefined || f.sizeBytes <= maxFileBytes),
+    )
     .slice(0, maxFiles);
 
   const edges: ImportEdge[] = [];

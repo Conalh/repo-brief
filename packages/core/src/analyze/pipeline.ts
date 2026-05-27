@@ -2,7 +2,7 @@ import { detectTechStack } from '../classify/framework.js';
 import { buildImportGraph, type ImportGraphOptions } from '../graph/index.js';
 import { assembleBrief } from '../report/brief.js';
 import { renderSubsystemMermaid } from '../report/mermaid.js';
-import type { BriefReport, ImportEdge, RepoSnapshot } from '../types.js';
+import type { BriefMode, BriefReport, ImportEdge, RepoSnapshot } from '../types.js';
 import { detectCommands, detectEntrypoints } from './entrypoints.js';
 import { detectHotspots } from './hotspots.js';
 import { collectManifests } from './manifests/index.js';
@@ -10,9 +10,22 @@ import { buildReadingPath } from './reading-path.js';
 import { buildSubsystems } from './subsystems.js';
 
 export interface AnalyzeOptions {
-  /** Skip the import graph (faster; no subsystem edges). */
-  skipGraph?: boolean;
+  /** Analysis depth. Defaults to "balanced". */
+  mode?: BriefMode;
+  /** Override the per-mode import-graph options. */
   graph?: ImportGraphOptions;
+}
+
+/** Per-mode import-graph defaults. fast skips the graph entirely. */
+function graphOptionsForMode(mode: BriefMode): ImportGraphOptions | null {
+  switch (mode) {
+    case 'fast':
+      return null;
+    case 'balanced':
+      return { maxFiles: 1500 };
+    case 'deep':
+      return { maxFiles: 5000 };
+  }
 }
 
 /**
@@ -24,6 +37,7 @@ export async function analyzeSnapshot(
   snapshot: RepoSnapshot,
   options: AnalyzeOptions = {},
 ): Promise<BriefReport> {
+  const mode = options.mode ?? 'balanced';
   const manifests = await collectManifests(snapshot);
   const techStack = detectTechStack(snapshot, manifests);
   const commands = detectCommands(manifests);
@@ -31,8 +45,9 @@ export async function analyzeSnapshot(
 
   let edges: ImportEdge[] = [];
   let lineCounts = new Map<string, number>();
-  if (!options.skipGraph) {
-    ({ edges, lineCounts } = await buildImportGraph(snapshot, options.graph));
+  const graphOptions = options.graph ?? graphOptionsForMode(mode);
+  if (graphOptions) {
+    ({ edges, lineCounts } = await buildImportGraph(snapshot, graphOptions));
   }
 
   const subsystems = buildSubsystems(snapshot.files, edges);
@@ -46,6 +61,7 @@ export async function analyzeSnapshot(
   });
 
   return assembleBrief(snapshot, {
+    mode,
     manifests,
     techStack,
     commands,

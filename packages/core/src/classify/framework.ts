@@ -76,7 +76,12 @@ export function detectTechStack(
   manifests: Manifest[],
 ): TechStack {
   const { primaryLanguage, languages } = detectLanguages(snapshot.files);
-  const frameworks = detectFrameworks(snapshot.files, manifests);
+  // Exclude fixture/test-data and vendored files so a sample project's config
+  // (e.g. a fixture's next.config.js) doesn't get reported as the repo's stack.
+  const ownFiles = snapshot.files.filter(
+    (f) => f.kind !== 'test' && f.kind !== 'generated',
+  );
+  const frameworks = detectFrameworks(ownFiles, manifests);
 
   const packageManagers = [
     ...new Set(manifests.map((m) => m.manager)),

@@ -1,4 +1,5 @@
 import type {
+  BriefMode,
   BriefReport,
   Commands,
   Entrypoint,
@@ -24,6 +25,7 @@ const ALL_KINDS: FileKind[] = [
 
 /** The analysis inputs layered onto the base snapshot summary. */
 export interface BriefAnalysis {
+  mode: BriefMode;
   manifests: Manifest[];
   techStack: TechStack;
   commands: Commands;
@@ -35,6 +37,7 @@ export interface BriefAnalysis {
 }
 
 const EMPTY_ANALYSIS: BriefAnalysis = {
+  mode: 'balanced',
   manifests: [],
   techStack: { languages: [], frameworks: [], packageManagers: [] },
   commands: {},
@@ -78,6 +81,7 @@ export function assembleBrief(
 
   return {
     identity,
+    mode: analysis.mode,
     fileCount: snapshot.files.length,
     kindBreakdown,
     techStack,
@@ -184,6 +188,6 @@ export function renderBriefMarkdown(brief: BriefReport): string {
     if (count > 0) lines.push(`| ${kind} | ${count} |`);
   }
   lines.push('');
-  lines.push(`_Generated ${brief.generatedAt}._`);
+  lines.push(`_Generated ${brief.generatedAt} · ${brief.mode} mode._`);
   return lines.join('\n');
 }

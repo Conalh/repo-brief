@@ -6,6 +6,14 @@
 
 export type SourceType = 'github_url' | 'local_path';
 
+/**
+ * Analysis depth:
+ *  - fast: metadata, tree, manifests, entrypoints (no import graph).
+ *  - balanced: fast + import graph, subsystems, hotspots, reading path.
+ *  - deep: balanced with higher file caps (churn is a future addition).
+ */
+export type BriefMode = 'fast' | 'balanced' | 'deep';
+
 /** A parsed, normalized repository reference. */
 export interface RepositoryInput {
   sourceType: SourceType;
@@ -159,6 +167,8 @@ export interface Entrypoint {
 /** The brief. Grows by milestone; later add subsystems, hotspots, reading path. */
 export interface BriefReport {
   identity: string;
+  /** Depth the brief was produced at. */
+  mode: BriefMode;
   fileCount: number;
   /** File counts grouped by kind, for a quick at-a-glance summary. */
   kindBreakdown: Record<FileKind, number>;

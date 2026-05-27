@@ -15,6 +15,7 @@ const snapshot: RepoSnapshot = {
 };
 
 const analysis: BriefAnalysis = {
+  mode: 'balanced',
   manifests: [{ path: 'package.json', manager: 'npm', scripts: {}, dependencies: [] }],
   techStack: {
     primaryLanguage: 'TypeScript',

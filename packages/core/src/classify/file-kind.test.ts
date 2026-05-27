@@ -24,6 +24,10 @@ describe('classifyFileKind', () => {
     ['logo.png', 'asset'],
     ['node_modules/left-pad/index.js', 'generated'],
     ['pnpm-lock.yaml', 'generated'],
+    ['vendor/foo/bar.go', 'generated'],
+    ['third_party/lib.c', 'generated'],
+    ['packages/core/fixtures/mini/index.ts', 'test'],
+    ['src/__mocks__/fs.ts', 'test'],
     ['Dockerfile', 'config'],
     ['mystery', 'unknown'],
   ] as const)('classifies %s as %s', (path, kind) => {

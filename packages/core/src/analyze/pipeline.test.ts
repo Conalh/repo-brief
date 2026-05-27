@@ -41,4 +41,13 @@ describe('analyzeSnapshot (end-to-end over the fixture)', () => {
     expect(brief.readingPath.steps[0]?.path).toBe('README.md');
     expect(brief.readingPath.steps.some((s) => s.path === 'app/page.tsx')).toBe(true);
   });
+
+  it('fast mode skips the import graph (no subsystem dependencies)', async () => {
+    const snapshot = await ingestLocal(fixture);
+    const brief = await analyzeSnapshot(snapshot, { mode: 'fast' });
+    expect(brief.mode).toBe('fast');
+    // Subsystems still group by folder, but with no edges there are no deps.
+    expect(brief.subsystems.every((s) => s.dependsOn.length === 0)).toBe(true);
+    expect(brief.architectureMermaid).not.toContain('-->');
+  });
 });

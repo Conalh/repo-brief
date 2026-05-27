@@ -15,7 +15,9 @@ ingests a GitHub URL or local path and prints a brief with the detected tech
 stack (languages + frameworks), run/build/test commands, entrypoints, a
 **subsystem architecture map** (Mermaid graph), a ranked **hotspot list**, and a
 **"where to start" reading path** — backed by npm/Python/Rust/GitHub Actions
-manifest parsing and a JS/TS + Python import graph. The web UI is next.
+manifest parsing and a JS/TS + Python import graph, with **fast/balanced/deep**
+depth modes. The web app is live (see below). Remaining before launch: deploy
+and portfolio polish (Milestone 6).
 
 ## Monorepo layout
 
@@ -44,6 +46,9 @@ pnpm cli inspect .
 
 # Just the Mermaid architecture graph:
 pnpm cli graph .
+
+# Depth modes: fast (no graph) | balanced (default) | deep
+pnpm cli inspect . --mode deep
 ```
 
 ## Web app (Milestone 4)

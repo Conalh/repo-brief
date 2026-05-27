@@ -56,6 +56,9 @@ const ENTRY_RULES: { kind: EntrypointKind; pattern: RegExp; evidence: string }[]
  */
 export function detectEntrypoints(snapshot: RepoSnapshot): Entrypoint[] {
   const paths = snapshot.files
+    // Ignore fixture/test-data and vendored files so a sample project's entry
+    // file isn't reported as the repo's entrypoint.
+    .filter((f) => f.kind !== 'test' && f.kind !== 'generated')
     .map((f) => f.path)
     .sort((a, b) => a.split('/').length - b.split('/').length);
 

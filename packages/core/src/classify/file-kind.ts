@@ -63,7 +63,17 @@ const GENERATED_HINTS = [
   'package-lock.json',
   'pnpm-lock.yaml',
   'yarn.lock',
+  // Vendored / third-party code: not this repo's own source.
+  'vendor/',
+  'third_party/',
+  'third-party/',
+  'vendored/',
 ];
+
+// Directories holding test/sample data. Their files are support material, not
+// the repo's primary source, so we classify them as test to keep them out of
+// subsystem/hotspot/reading-path signals.
+const TEST_DATA_DIRS = /(^|\/)(fixtures?|__fixtures__|testdata|test-data|__mocks__|mocks|snapshots|__snapshots__)\//;
 
 /** Extract the lowercased extension (no dot) from a POSIX path. "" if none. */
 export function extensionOf(path: string): string {
@@ -100,7 +110,7 @@ export function classifyFileKind(path: string): FileKind {
     return 'workflow';
   }
 
-  if (looksLikeTest(path)) {
+  if (looksLikeTest(path) || TEST_DATA_DIRS.test(lower)) {
     return 'test';
   }
 

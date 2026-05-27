@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
-import { GitHubIngestError, RepoUrlParseError } from '@repobrief/core';
+import {
+  GitHubIngestError,
+  RepoUrlParseError,
+  type BriefMode,
+} from '@repobrief/core';
 import { runGitHubBrief } from '@/lib/analyze-service';
+
+const MODES: BriefMode[] = ['fast', 'balanced', 'deep'];
 
 export const runtime = 'nodejs';
 // Briefs can take up to ~90s; allow a long synchronous request on platforms
@@ -9,7 +15,7 @@ export const maxDuration = 120;
 
 /** POST /api/briefs { url } -> { id } — runs (or cache-hits) a GitHub brief. */
 export async function POST(request: Request): Promise<NextResponse> {
-  let body: { url?: unknown };
+  let body: { url?: unknown; mode?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -20,8 +26,13 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: 'A repository "url" is required.' }, { status: 400 });
   }
 
+  const mode: BriefMode =
+    typeof body.mode === 'string' && MODES.includes(body.mode as BriefMode)
+      ? (body.mode as BriefMode)
+      : 'balanced';
+
   try {
-    const brief = await runGitHubBrief(body.url);
+    const brief = await runGitHubBrief(body.url, mode);
     return NextResponse.json({ id: brief.id }, { status: 201 });
   } catch (err) {
     if (err instanceof RepoUrlParseError) {

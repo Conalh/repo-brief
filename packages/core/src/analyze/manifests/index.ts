@@ -36,7 +36,14 @@ function parserFor(
  */
 export async function collectManifests(snapshot: RepoSnapshot): Promise<Manifest[]> {
   const candidates = snapshot.files
-    .filter((file) => parserFor(file.path) !== null)
+    // Skip manifests under fixtures/test-data (kind 'test') and vendored/
+    // generated trees so a repo's own stack isn't polluted by sample projects.
+    .filter(
+      (file) =>
+        file.kind !== 'test' &&
+        file.kind !== 'generated' &&
+        parserFor(file.path) !== null,
+    )
     .sort((a, b) => depth(a.path) - depth(b.path));
 
   const manifests: Manifest[] = [];
