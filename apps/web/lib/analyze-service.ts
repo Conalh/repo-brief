@@ -5,6 +5,7 @@ import {
   type BriefMode,
 } from '@repobrief/core';
 import { briefId } from './brief-id';
+import { hostedIngestLimits } from './server-config';
 import { getBrief, putBrief, type StoredBrief } from './store';
 
 /**
@@ -17,7 +18,10 @@ export async function runGitHubBrief(
   mode: BriefMode = 'balanced',
 ): Promise<StoredBrief> {
   const input = parseGitHubUrl(reference);
-  const snapshot = await ingestGitHub(input, { token: process.env.GITHUB_TOKEN });
+  const snapshot = await ingestGitHub(input, {
+    token: process.env.GITHUB_TOKEN,
+    limits: hostedIngestLimits(),
+  });
 
   const id = briefId(input.owner!, input.repo, snapshot.headSha, mode);
   const cached = await getBrief(id);

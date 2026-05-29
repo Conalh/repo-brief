@@ -176,3 +176,81 @@ describe('ingestGitHub — churn provider is best-effort', () => {
     expect(counts.get('b.ts')).toBe(1);
   });
 });
+
+describe('ingestGitHub — hosted limits and binary handling', () => {
+  it('lists every file but only retains text content for textual files', async () => {
+    const gz = await createTarGzip([
+      { name: 'octo-demo-deadbeef/src/index.ts', data: 'export const x = 1;' },
+      // Innocent name, but the bytes contain a NUL -> sniffed as binary.
+      { name: 'octo-demo-deadbeef/blob.dat', data: new Uint8Array([1, 0, 2, 3]) },
+      // Known binary asset kind by extension.
+      { name: 'octo-demo-deadbeef/logo.png', data: new Uint8Array([137, 80, 78, 71]) },
+    ]);
+    const fetchImpl = vi.fn().mockResolvedValueOnce(tarballResponse(gz));
+
+    const snapshot = await ingestGitHub(input, {
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+
+    // All three appear in the tree...
+    expect(snapshot.files.map((f) => f.path).sort()).toEqual([
+      'blob.dat',
+      'logo.png',
+      'src/index.ts',
+    ]);
+    // ...but only the source file's content is decoded and stored.
+    expect(await snapshot.reader.read('src/index.ts')).toBe('export const x = 1;');
+    expect(await snapshot.reader.read('blob.dat')).toBeNull();
+    expect(await snapshot.reader.read('logo.png')).toBeNull();
+  });
+
+  it('enforces a lowered maxFileCount from options', async () => {
+    const gz = await createTarGzip([
+      { name: 'octo-demo-deadbeef/a.ts', data: 'a' },
+      { name: 'octo-demo-deadbeef/b.ts', data: 'b' },
+      { name: 'octo-demo-deadbeef/c.ts', data: 'c' },
+    ]);
+    const fetchImpl = vi.fn().mockResolvedValueOnce(tarballResponse(gz));
+
+    await expect(
+      ingestGitHub(input, {
+        fetchImpl: fetchImpl as unknown as typeof fetch,
+        limits: { maxFileCount: 2 },
+      }),
+    ).rejects.toThrow(/too many files/);
+  });
+
+  it('enforces a lowered maxTotalTextBytes from options', async () => {
+    const gz = await createTarGzip([
+      { name: 'octo-demo-deadbeef/a.ts', data: 'hello world' },
+      { name: 'octo-demo-deadbeef/b.ts', data: 'another body' },
+    ]);
+    const fetchImpl = vi.fn().mockResolvedValueOnce(tarballResponse(gz));
+
+    await expect(
+      ingestGitHub(input, {
+        fetchImpl: fetchImpl as unknown as typeof fetch,
+        limits: { maxTotalTextBytes: 5 },
+      }),
+    ).rejects.toThrow(/too much text/);
+  });
+
+  it('rejects an archive whose declared size exceeds a lowered cap', async () => {
+    const oversized = {
+      ok: true,
+      status: 200,
+      headers: { get: (k: string) => (k === 'content-length' ? '1000' : null) },
+      arrayBuffer: async () => new Uint8Array().buffer,
+    } as unknown as Response;
+    const fetchImpl = vi.fn().mockResolvedValueOnce(oversized);
+
+    await expect(
+      ingestGitHub(input, {
+        fetchImpl: fetchImpl as unknown as typeof fetch,
+        limits: { maxArchiveBytes: 500 },
+      }),
+    ).rejects.toThrow(/too large/);
+    // 413 is fatal — no fallback to the tree path.
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+});
