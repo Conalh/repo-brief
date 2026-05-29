@@ -13,7 +13,7 @@ each claim backed by file evidence. It is an orientation layer, **not** a code r
 ![tests](https://img.shields.io/badge/tests-117%20passing-brightgreen)
 ![coverage](https://img.shields.io/badge/core%20coverage-96%25-brightgreen)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6)
-![Node](https://img.shields.io/badge/node-%3E%3D20-339933)
+![Node](https://img.shields.io/badge/node-%3E%3D22.5-339933)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
 > **See it run →** [`REPO_BRIEF.md`](./REPO_BRIEF.md) is RepoBrief analyzing its
@@ -255,7 +255,16 @@ graph LR
 | `apps/mcp` | MCP server so an AI agent can brief a repo before working in it. |
 
 See [`PLAN.md`](./PLAN.md) for the full product spec and [`ROADMAP.md`](./ROADMAP.md)
-for the milestone sequence that took it from plan to working software.
+for the milestone-by-milestone build log that took it from plan to working software.
+
+## Requirements
+
+- **Node ≥ 22.5** — the web app's zero-config local store uses Node's built-in
+  `node:sqlite` (added in 22.5). The CLI and core engine run on older Node, but
+  the workspace pins ≥ 22.5 for consistency with CI.
+- **pnpm** (the repo is a pnpm + Turborepo workspace).
+- For serverless/hosted deploys, set `TURSO_DATABASE_URL` to use libSQL/Turso
+  instead of local SQLite — see [`docs/DEPLOY.md`](./docs/DEPLOY.md).
 
 ## Status
 
@@ -263,7 +272,9 @@ V1 feature-complete and then some: CLI, web, and an MCP server all work
 end-to-end against real repos, with circular-dependency detection, a route map,
 and deep-mode churn analysis. Tarball ingestion keeps it fast — a ~2,100-file
 repo briefs in under a second, well inside the 30s/90s targets. The web store
-runs on local SQLite or hosted Turso (see [`docs/DEPLOY.md`](./docs/DEPLOY.md)).
+runs on local SQLite (Node ≥ 22.5) or hosted Turso (see
+[`docs/DEPLOY.md`](./docs/DEPLOY.md)). See [`CHANGELOG.md`](./CHANGELOG.md) for
+release history.
 
 ## License
 
