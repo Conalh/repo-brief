@@ -1,17 +1,19 @@
 import { NextResponse } from 'next/server';
 import { seedDemoBriefs } from '@/lib/demos';
+import { assessSeedAuth } from '@/lib/server-config';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
 
 /**
  * POST /api/demo/seed -> analyze the demo repos and store them as demo briefs.
- * If SEED_TOKEN is set, the request must send a matching `x-seed-token` header.
+ * Default-closed in production: requires a matching `x-seed-token` header when
+ * SEED_TOKEN is set, and is disabled entirely in production when it isn't.
  */
 export async function POST(request: Request): Promise<NextResponse> {
-  const required = process.env.SEED_TOKEN;
-  if (required && request.headers.get('x-seed-token') !== required) {
-    return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+  const auth = assessSeedAuth(process.env, request.headers.get('x-seed-token'));
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
   const result = await seedDemoBriefs();
   return NextResponse.json(result);

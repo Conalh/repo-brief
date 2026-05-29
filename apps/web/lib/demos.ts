@@ -1,5 +1,6 @@
 import { analyzeSnapshot, ingestGitHub, parseGitHubUrl } from '@repobrief/core';
 import { briefId } from './brief-id';
+import { hostedIngestLimits } from './server-config';
 import { putBrief } from './store';
 
 /** Repos seeded as landing-page demo briefs. */
@@ -20,7 +21,10 @@ export async function seedDemoBriefs(): Promise<{ seeded: string[]; failed: stri
   for (const reference of DEMO_REPOS) {
     try {
       const input = parseGitHubUrl(reference);
-      const snapshot = await ingestGitHub(input, { token: process.env.GITHUB_TOKEN });
+      const snapshot = await ingestGitHub(input, {
+        token: process.env.GITHUB_TOKEN,
+        limits: hostedIngestLimits(),
+      });
       const report = await analyzeSnapshot(snapshot);
       const id = briefId(input.owner!, input.repo, snapshot.headSha, 'balanced');
       await putBrief({

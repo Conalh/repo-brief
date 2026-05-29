@@ -36,6 +36,29 @@ interface GitHubRepoResponse {
   default_branch: string;
 }
 
+/**
+ * Resource ceilings for ingestion. A hosted instance accepts arbitrary public
+ * GitHub URLs, so an attacker could point it at a giant repo to exhaust server
+ * memory. These bound the compressed download, the file count, and the total
+ * decoded text held in memory; exceeding any one fails with a clear error rather
+ * than OOM-ing the process. Hosted deployments should pass lower values.
+ */
+export interface IngestLimits {
+  /** Largest accepted compressed archive, in bytes (tarball path). */
+  maxArchiveBytes: number;
+  /** Largest number of files ingested before failing. */
+  maxFileCount: number;
+  /** Largest total decoded text held in memory, in bytes. */
+  maxTotalTextBytes: number;
+}
+
+/** Generous defaults suited to a trusted/local CLI run. */
+export const DEFAULT_INGEST_LIMITS: IngestLimits = {
+  maxArchiveBytes: 250_000_000,
+  maxFileCount: 50_000,
+  maxTotalTextBytes: 300_000_000,
+};
+
 export interface GitHubIngestOptions {
   /** Token for authenticated requests (raises rate limit 60/hr -> 5000/hr). */
   token?: string;
@@ -43,21 +66,26 @@ export interface GitHubIngestOptions {
   fetchImpl?: typeof fetch;
   /** Force the tree+contents API path instead of the tarball (mainly for tests). */
   preferTree?: boolean;
+  /** Resource ceilings; hosted deployments pass lower values than the defaults. */
+  limits?: Partial<IngestLimits>;
 }
 
 /** Skip storing text for files larger than this (bounds memory for big blobs). */
 const MAX_TEXT_BYTES = MAX_SOURCE_TEXT_BYTES;
 
 /**
- * Resource ceilings for tarball ingestion. A hosted instance accepts arbitrary
- * public GitHub URLs, so an attacker could point it at a giant repo to exhaust
- * server memory. These bound the compressed download, the file count, and the
- * total decoded text held in memory; exceeding any one fails with a clear error
- * rather than OOM-ing the process.
+ * Heuristic binary check: a NUL byte within the first 8 KB. Source, config, and
+ * docs never contain NULs, while compiled objects, images, and archives almost
+ * always do — so this keeps the in-memory text store from holding decoded binary
+ * blobs just because they slipped under the per-file byte cap.
  */
-const MAX_ARCHIVE_BYTES = 250_000_000;
-const MAX_FILE_COUNT = 50_000;
-const MAX_TOTAL_TEXT_BYTES = 300_000_000;
+function looksBinary(data: Uint8Array): boolean {
+  const limit = Math.min(data.length, 8192);
+  for (let i = 0; i < limit; i++) {
+    if (data[i] === 0) return true;
+  }
+  return false;
+}
 
 function authHeaders(token?: string): Record<string, string> {
   const headers: Record<string, string> = {
@@ -168,6 +196,7 @@ async function ingestViaTarball(
   options: GitHubIngestOptions,
 ): Promise<RepoSnapshot> {
   const doFetch = options.fetchImpl ?? fetch;
+  const limits = { ...DEFAULT_INGEST_LIMITS, ...options.limits };
   const { owner, repo } = input;
   const headers = authHeaders(options.token);
   const ref = input.branch ?? 'HEAD';
@@ -180,17 +209,17 @@ async function ingestViaTarball(
 
   // Reject obviously oversized archives before buffering them into memory.
   const declaredLength = Number(res.headers?.get?.('content-length') ?? 0);
-  if (declaredLength > MAX_ARCHIVE_BYTES) {
+  if (declaredLength > limits.maxArchiveBytes) {
     throw new GitHubIngestError(
-      `Repository archive is too large to analyze (${declaredLength} bytes; limit ${MAX_ARCHIVE_BYTES}).`,
+      `Repository archive is too large to analyze (${declaredLength} bytes; limit ${limits.maxArchiveBytes}).`,
       413,
     );
   }
 
   const bytes = new Uint8Array(await res.arrayBuffer());
-  if (bytes.length > MAX_ARCHIVE_BYTES) {
+  if (bytes.length > limits.maxArchiveBytes) {
     throw new GitHubIngestError(
-      `Repository archive is too large to analyze (${bytes.length} bytes; limit ${MAX_ARCHIVE_BYTES}).`,
+      `Repository archive is too large to analyze (${bytes.length} bytes; limit ${limits.maxArchiveBytes}).`,
       413,
     );
   }
@@ -221,24 +250,30 @@ async function ingestViaTarball(
 
     const rel = name.slice(slash + 1);
     if (!rel) continue;
-    if (files.length >= MAX_FILE_COUNT) {
+    if (files.length >= limits.maxFileCount) {
       throw new GitHubIngestError(
-        `Repository has too many files to analyze (limit ${MAX_FILE_COUNT}).`,
+        `Repository has too many files to analyze (limit ${limits.maxFileCount}).`,
         413,
       );
     }
     const data = entry.data ?? new Uint8Array();
+    const kind = classifyFileKind(rel);
     files.push({
       path: rel,
       extension: extensionOf(rel),
       sizeBytes: data.length,
-      kind: classifyFileKind(rel),
+      kind,
     });
-    if (data.length > 0 && data.length <= MAX_TEXT_BYTES) {
+    // Only retain decoded text for plausibly-textual files. Known binary asset
+    // kinds and generated noise are skipped outright; the byte sniff then drops
+    // anything else that is actually binary (e.g. a .dat under the size cap) so
+    // we never store arbitrary bytes decoded as UTF-8.
+    const textWorthy = kind !== 'asset' && kind !== 'generated';
+    if (textWorthy && data.length > 0 && data.length <= MAX_TEXT_BYTES && !looksBinary(data)) {
       totalTextBytes += data.length;
-      if (totalTextBytes > MAX_TOTAL_TEXT_BYTES) {
+      if (totalTextBytes > limits.maxTotalTextBytes) {
         throw new GitHubIngestError(
-          `Repository has too much text content to analyze (limit ${MAX_TOTAL_TEXT_BYTES} bytes).`,
+          `Repository has too much text content to analyze (limit ${limits.maxTotalTextBytes} bytes).`,
           413,
         );
       }
@@ -299,6 +334,7 @@ async function ingestViaTree(
   options: GitHubIngestOptions,
 ): Promise<RepoSnapshot> {
   const doFetch = options.fetchImpl ?? fetch;
+  const limits = { ...DEFAULT_INGEST_LIMITS, ...options.limits };
   const { owner, repo } = input;
   const headers = authHeaders(options.token);
 
@@ -321,9 +357,9 @@ async function ingestViaTree(
   const tree = (await treeRes.json()) as GitHubTreeResponse;
 
   const blobs = tree.tree.filter((entry) => entry.type === 'blob');
-  if (blobs.length > MAX_FILE_COUNT) {
+  if (blobs.length > limits.maxFileCount) {
     throw new GitHubIngestError(
-      `Repository has too many files to analyze (limit ${MAX_FILE_COUNT}).`,
+      `Repository has too many files to analyze (limit ${limits.maxFileCount}).`,
       413,
     );
   }
