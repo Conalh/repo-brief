@@ -42,6 +42,22 @@ describe('analyzeSnapshot (end-to-end over the fixture)', () => {
     expect(brief.readingPath.steps.some((s) => s.path === 'app/page.tsx')).toBe(true);
   });
 
+  it('deep mode degrades to no churn when the churn provider throws', async () => {
+    const snapshot = await ingestLocal(fixture);
+    const failing = {
+      ...snapshot,
+      churn: {
+        recentChanges: async () => {
+          throw new Error('rate limited');
+        },
+      },
+    };
+    // Must produce a brief rather than letting the churn failure escape.
+    const brief = await analyzeSnapshot(failing, { mode: 'deep' });
+    expect(brief.mode).toBe('deep');
+    expect(Array.isArray(brief.hotspots)).toBe(true);
+  });
+
   it('fast mode skips the import graph (no subsystem dependencies)', async () => {
     const snapshot = await ingestLocal(fixture);
     const brief = await analyzeSnapshot(snapshot, { mode: 'fast' });

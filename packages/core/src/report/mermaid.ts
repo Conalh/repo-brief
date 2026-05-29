@@ -13,17 +13,20 @@ function escapeLabel(label: string): string {
 export function renderSubsystemMermaid(subsystems: Subsystem[]): string {
   if (subsystems.length === 0) return '';
 
+  // Key nodes by pathPrefix — the stable identity. Two subsystems can share a
+  // display name (e.g. "apps/api" and "packages/api" both labelled "api"), so
+  // `name` is used only for the human-readable label, never as a node key.
   const id = new Map<string, string>();
-  subsystems.forEach((s, i) => id.set(s.name, `n${i}`));
+  subsystems.forEach((s, i) => id.set(s.pathPrefix, `n${i}`));
 
   const lines: string[] = ['graph LR'];
   for (const s of subsystems) {
-    lines.push(`  ${id.get(s.name)}["${escapeLabel(s.name)} (${s.fileCount})"]`);
+    lines.push(`  ${id.get(s.pathPrefix)}["${escapeLabel(s.name)} (${s.fileCount})"]`);
   }
   for (const s of subsystems) {
     for (const dep of s.dependsOn) {
       const to = id.get(dep);
-      if (to) lines.push(`  ${id.get(s.name)} --> ${to}`);
+      if (to) lines.push(`  ${id.get(s.pathPrefix)} --> ${to}`);
     }
   }
   return lines.join('\n');

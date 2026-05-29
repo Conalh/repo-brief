@@ -62,7 +62,10 @@ export function buildSubsystems(files: FileNode[], edges: ImportEdge[]): Subsyst
       name: displayName(key),
       pathPrefix: key,
       fileCount,
-      dependsOn: [...(dependsOn.get(key) ?? [])].map(displayName).sort(),
+      // Keep stable pathPrefix keys (not display names) so the graph can relate
+      // subsystems unambiguously even when two share a display name, e.g.
+      // "apps/api" and "packages/api" both rendering as "api".
+      dependsOn: [...(dependsOn.get(key) ?? [])].sort(),
       confidence: 'medium' as const,
     }))
     .sort((a, b) => b.fileCount - a.fileCount || a.pathPrefix.localeCompare(b.pathPrefix));

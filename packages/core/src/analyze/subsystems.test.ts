@@ -35,9 +35,30 @@ describe('buildSubsystems', () => {
     expect(subs.some((s) => s.name === 'README.md')).toBe(false);
   });
 
-  it('derives dependsOn from import edges', () => {
+  it('derives dependsOn as stable pathPrefix keys from import edges', () => {
     const subs = buildSubsystems(files, edges);
     const report = subs.find((s) => s.pathPrefix === 'src/report');
-    expect(report?.dependsOn).toEqual(['ingest']);
+    expect(report?.dependsOn).toEqual(['src/ingest']);
+  });
+
+  it('keeps colliding display names distinct via pathPrefix', () => {
+    // apps/api and packages/api both render as "api"; the dependency between
+    // them must still resolve to the correct pathPrefix, not collapse.
+    const collide: FileNode[] = [
+      { path: 'apps/api/server.ts', extension: 'ts', kind: 'source' },
+      { path: 'packages/api/client.ts', extension: 'ts', kind: 'source' },
+    ];
+    const collideEdges: ImportEdge[] = [
+      {
+        from: 'apps/api/server.ts',
+        to: 'packages/api/client.ts',
+        kind: 'static',
+        confidence: 'high',
+      },
+    ];
+    const subs = buildSubsystems(collide, collideEdges);
+    const app = subs.find((s) => s.pathPrefix === 'apps/api');
+    expect(app?.name).toBe('api');
+    expect(app?.dependsOn).toEqual(['packages/api']);
   });
 });
