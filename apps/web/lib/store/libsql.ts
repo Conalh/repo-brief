@@ -1,9 +1,14 @@
 import {
+  CREATE_JOBS_TABLE_SQL,
   CREATE_TABLE_SQL,
   rowToBrief,
+  rowToJob,
   type BriefRow,
+  type JobRow,
+  type JobUpdate,
   type Store,
   type StoredBrief,
+  type StoredJob,
 } from './types';
 
 /**
@@ -20,7 +25,10 @@ export function createLibsqlStore(url: string, authToken?: string): Store {
   let ready: Promise<void> | null = null;
   async function client() {
     const c = await clientPromise;
-    ready ??= c.execute(CREATE_TABLE_SQL).then(() => undefined);
+    ready ??= c
+      .execute(CREATE_TABLE_SQL)
+      .then(() => c.execute(CREATE_JOBS_TABLE_SQL))
+      .then(() => undefined);
     await ready;
     return c;
   }
@@ -56,6 +64,36 @@ export function createLibsqlStore(url: string, authToken?: string): Store {
           brief.isDemo ? 1 : 0,
           brief.createdAt,
         ],
+      });
+    },
+    async createJob(job: StoredJob) {
+      const c = await client();
+      await c.execute({
+        sql: `INSERT INTO jobs (id, url, mode, status, brief_id, error, created_at, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [
+          job.id,
+          job.url,
+          job.mode,
+          job.status,
+          job.briefId ?? null,
+          job.error ?? null,
+          job.createdAt,
+          job.updatedAt,
+        ],
+      });
+    },
+    async getJob(id) {
+      const c = await client();
+      const rs = await c.execute({ sql: 'SELECT * FROM jobs WHERE id = ?', args: [id] });
+      const row = rs.rows[0];
+      return row ? rowToJob(row as unknown as JobRow) : null;
+    },
+    async updateJob(id: string, patch: JobUpdate) {
+      const c = await client();
+      await c.execute({
+        sql: `UPDATE jobs SET status = ?, brief_id = ?, error = ?, updated_at = ? WHERE id = ?`,
+        args: [patch.status, patch.briefId ?? null, patch.error ?? null, patch.updatedAt, id],
       });
     },
   };
