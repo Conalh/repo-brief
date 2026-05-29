@@ -5,12 +5,11 @@
   "description": "Turn any public GitHub repo into an architecture map, key-file guide, risk summary, and onboarding path.",
   "packageManager": "pnpm@11.3.0",
   "engines": {
-    "node": ">=20"
+    "node": ">=22.5.0"
   },
   "scripts": {
     "build": "turbo run build",
     "test": "turbo run test",
-    "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
     "cli": "pnpm --filter @repobrief/cli exec repobrief"

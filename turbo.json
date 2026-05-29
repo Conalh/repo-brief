@@ -10,7 +10,6 @@
       "dependsOn": ["^build"],
       "inputs": ["src/**", "fixtures/**", "vitest.config.ts", "package.json"]
     },
-    "lint": {},
     "typecheck": {
       "dependsOn": ["^build"],
       "inputs": ["src/**", "tsconfig.json"]
