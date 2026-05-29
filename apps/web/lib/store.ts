@@ -1,8 +1,8 @@
 import { createSqliteStore } from './store/sqlite';
 import { createLibsqlStore } from './store/libsql';
-import type { Store, StoredBrief } from './store/types';
+import type { JobUpdate, Store, StoredBrief, StoredJob } from './store/types';
 
-export type { StoredBrief } from './store/types';
+export type { StoredBrief, StoredJob, JobStatus, JobUpdate } from './store/types';
 
 /**
  * Choose the persistence backend by environment:
@@ -30,4 +30,16 @@ export function listDemoBriefs(): Promise<StoredBrief[]> {
 
 export function putBrief(brief: StoredBrief): Promise<void> {
   return getStore().putBrief(brief);
+}
+
+export function createJob(job: StoredJob): Promise<void> {
+  return getStore().createJob(job);
+}
+
+export function getJob(id: string): Promise<StoredJob | null> {
+  return getStore().getJob(id);
+}
+
+export function updateJob(id: string, patch: JobUpdate): Promise<void> {
+  return getStore().updateJob(id, patch);
 }

@@ -96,3 +96,59 @@ describe('store', () => {
     expect((await getBrief('replace-me'))?.report.identity).toBe('second');
   });
 });
+
+describe('store — jobs', () => {
+  it('creates, reads, and progresses a job through its lifecycle', async () => {
+    const { createJob, getJob, updateJob } = await import('./store');
+    const now = new Date().toISOString();
+    await createJob({
+      id: 'job-1',
+      url: 'https://github.com/octo/demo',
+      mode: 'balanced',
+      status: 'queued',
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    expect((await getJob('job-1'))?.status).toBe('queued');
+
+    await updateJob('job-1', { status: 'running', updatedAt: new Date().toISOString() });
+    expect((await getJob('job-1'))?.status).toBe('running');
+
+    await updateJob('job-1', {
+      status: 'succeeded',
+      briefId: 'octo-demo-abc',
+      updatedAt: new Date().toISOString(),
+    });
+    const done = await getJob('job-1');
+    expect(done?.status).toBe('succeeded');
+    expect(done?.briefId).toBe('octo-demo-abc');
+    expect(done?.error).toBeUndefined();
+  });
+
+  it('records a failure message', async () => {
+    const { createJob, getJob, updateJob } = await import('./store');
+    const now = new Date().toISOString();
+    await createJob({
+      id: 'job-2',
+      url: 'https://github.com/octo/missing',
+      mode: 'fast',
+      status: 'queued',
+      createdAt: now,
+      updatedAt: now,
+    });
+    await updateJob('job-2', {
+      status: 'failed',
+      error: 'Repository not found.',
+      updatedAt: new Date().toISOString(),
+    });
+    const failed = await getJob('job-2');
+    expect(failed?.status).toBe('failed');
+    expect(failed?.error).toBe('Repository not found.');
+  });
+
+  it('returns null for an unknown job', async () => {
+    const { getJob } = await import('./store');
+    expect(await getJob('nope')).toBeNull();
+  });
+});
