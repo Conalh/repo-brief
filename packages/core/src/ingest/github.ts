@@ -84,32 +84,44 @@ function buildChurnProvider(
   return {
     async recentChanges(commitLimit) {
       const counts = new Map<string, number>();
-      const perPage = Math.min(commitLimit, 100);
-      const listRes = await doFetch(
-        `https://api.github.com/repos/${owner}/${repo}/commits?sha=${encodeURIComponent(
-          ref,
-        )}&per_page=${perPage}`,
-        { headers },
-      );
-      if (!listRes.ok) return counts;
-      const list = (await listRes.json()) as { sha: string }[];
+      // Churn is best-effort: any network/JSON failure degrades to whatever
+      // was collected so far (possibly empty) rather than throwing. The whole
+      // body is guarded, and each per-commit read is isolated so one bad commit
+      // doesn't abort the rest.
+      try {
+        const perPage = Math.min(commitLimit, 100);
+        const listRes = await doFetch(
+          `https://api.github.com/repos/${owner}/${repo}/commits?sha=${encodeURIComponent(
+            ref,
+          )}&per_page=${perPage}`,
+          { headers },
+        );
+        if (!listRes.ok) return counts;
+        const list = (await listRes.json()) as { sha: string }[];
 
-      let cursor = 0;
-      const worker = async (): Promise<void> => {
-        while (cursor < list.length) {
-          const sha = list[cursor++]!.sha;
-          const res = await doFetch(
-            `https://api.github.com/repos/${owner}/${repo}/commits/${sha}`,
-            { headers },
-          );
-          if (!res.ok) continue;
-          const detail = (await res.json()) as { files?: { filename: string }[] };
-          for (const file of detail.files ?? []) {
-            counts.set(file.filename, (counts.get(file.filename) ?? 0) + 1);
+        let cursor = 0;
+        const worker = async (): Promise<void> => {
+          while (cursor < list.length) {
+            const sha = list[cursor++]!.sha;
+            try {
+              const res = await doFetch(
+                `https://api.github.com/repos/${owner}/${repo}/commits/${sha}`,
+                { headers },
+              );
+              if (!res.ok) continue;
+              const detail = (await res.json()) as { files?: { filename: string }[] };
+              for (const file of detail.files ?? []) {
+                counts.set(file.filename, (counts.get(file.filename) ?? 0) + 1);
+              }
+            } catch {
+              // Skip this commit; keep the worker going.
+            }
           }
-        }
-      };
-      await Promise.all(Array.from({ length: Math.min(8, list.length) }, worker));
+        };
+        await Promise.all(Array.from({ length: Math.min(8, list.length) }, worker));
+      } catch {
+        // Network error listing commits, malformed JSON, etc. — return partial.
+      }
       return counts;
     },
   };

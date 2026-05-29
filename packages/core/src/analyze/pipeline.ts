@@ -59,9 +59,16 @@ export async function analyzeSnapshot(
   const routes = mergeRoutes(snapshot.files, routeCollector.routes);
 
   // Deep mode adds commit-history churn to hotspot scoring when available.
+  // Churn is a best-effort signal: a failing provider must degrade the report
+  // to "no churn", never fail the whole analysis. (The GitHub provider already
+  // guards itself; this also covers arbitrary ChurnProvider implementations.)
   let churn = new Map<string, number>();
   if (mode === 'deep' && snapshot.churn) {
-    churn = await snapshot.churn.recentChanges(50);
+    try {
+      churn = await snapshot.churn.recentChanges(50);
+    } catch {
+      churn = new Map();
+    }
   }
 
   const subsystems = buildSubsystems(snapshot.files, edges);

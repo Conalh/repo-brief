@@ -121,3 +121,58 @@ describe('ingestGitHub — tree path (preferTree)', () => {
     ).rejects.toBeInstanceOf(GitHubIngestError);
   });
 });
+
+describe('ingestGitHub — churn provider is best-effort', () => {
+  // Build a snapshot via the tree path (2 calls), then drive churn separately.
+  async function snapshotWithChurnFetch(...churnCalls: unknown[]) {
+    const fetchImpl = vi.fn();
+    fetchImpl
+      .mockResolvedValueOnce(jsonResponse({ default_branch: 'main' }))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          sha: 'abc',
+          truncated: false,
+          tree: [{ path: 'a.ts', type: 'blob', size: 1 }],
+        }),
+      );
+    for (const call of churnCalls) {
+      if (call instanceof Error) fetchImpl.mockRejectedValueOnce(call);
+      else fetchImpl.mockResolvedValueOnce(call as Response);
+    }
+    const snapshot = await ingestGitHub(input, {
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      preferTree: true,
+    });
+    return snapshot;
+  }
+
+  it('returns an empty map when the commits list request is not ok', async () => {
+    const snapshot = await snapshotWithChurnFetch(jsonResponse(null, false, 500));
+    const counts = await snapshot.churn!.recentChanges(10);
+    expect(counts.size).toBe(0);
+  });
+
+  it('does not throw when listing commits rejects (network error)', async () => {
+    const snapshot = await snapshotWithChurnFetch(new Error('network down'));
+    await expect(snapshot.churn!.recentChanges(10)).resolves.toBeInstanceOf(Map);
+  });
+
+  it('skips a commit whose detail fetch rejects, without aborting', async () => {
+    const snapshot = await snapshotWithChurnFetch(
+      jsonResponse([{ sha: 's1' }]), // list ok
+      new Error('boom'), // per-commit detail rejects
+    );
+    const counts = await snapshot.churn!.recentChanges(10);
+    expect(counts.size).toBe(0);
+  });
+
+  it('still counts commits whose detail succeeds', async () => {
+    const snapshot = await snapshotWithChurnFetch(
+      jsonResponse([{ sha: 's1' }]),
+      jsonResponse({ files: [{ filename: 'a.ts' }, { filename: 'b.ts' }] }),
+    );
+    const counts = await snapshot.churn!.recentChanges(10);
+    expect(counts.get('a.ts')).toBe(1);
+    expect(counts.get('b.ts')).toBe(1);
+  });
+});

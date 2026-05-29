@@ -142,7 +142,7 @@ export interface Subsystem {
   /** Repo-relative path prefix that owns this subsystem, e.g. "src/ingest". */
   pathPrefix: string;
   fileCount: number;
-  /** Names of other subsystems this one imports from. */
+  /** pathPrefixes of other subsystems this one imports from (stable keys). */
   dependsOn: string[];
   confidence: Confidence;
 }
