@@ -9,6 +9,7 @@ import graph, a ranked hotspot list, and an ordered "where to start" reading pat
 each claim backed by file evidence. It is an orientation layer, **not** a code review.
 
 [![CI](https://github.com/conalh/repo-brief/actions/workflows/ci.yml/badge.svg)](https://github.com/conalh/repo-brief/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@repobrief/cli?logo=npm&color=cb3837)](https://www.npmjs.com/package/@repobrief/cli)
 ![tests](https://img.shields.io/badge/tests-117%20passing-brightgreen)
 ![coverage](https://img.shields.io/badge/core%20coverage-96%25-brightgreen)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6)
