@@ -14,7 +14,7 @@ Post-V1 hardening for running on a public URL (see [ROADMAP](./ROADMAP.md#beyond
   or empty signal instead of failing the analysis. Subsystem-graph identity keyed
   on stable `pathPrefix` so subsystems sharing a display name no longer collapse.
 
-### Added (in progress)
+### Added
 - Public-deployment hardening: seed endpoint default-closed in production, per-IP
   rate limiting and a concurrency cap on `POST /api/briefs`, lower hosted ingest
   caps, and binary-content detection so non-text files aren't stored as UTF-8.

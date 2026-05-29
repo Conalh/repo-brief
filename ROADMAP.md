@@ -106,12 +106,12 @@ Post-V1 robustness for running on a public URL, tracked as a sequence of PRs:
 
 - [x] **Correctness hardening** — slashed-branch parsing, best-effort churn that
       degrades instead of failing, stable `pathPrefix` subsystem-graph identity.
-- [ ] **Public-deployment hardening** — seed endpoint default-closed in
+- [x] **Public-deployment hardening** — seed endpoint default-closed in
       production, per-IP rate limiting + concurrency cap on `/api/briefs`, lower
       hosted ingest caps, and refusing to decode binary content as text.
-- [ ] **Async analysis** — persisted job table, `202 + jobId`, status polling,
+- [x] **Async analysis** — persisted job table, `202 + jobId`, status polling,
       and an in-process job runner (swappable for a durable queue).
-- [ ] **Presentation** — this build log, honest Node runtime requirements, and a
+- [x] **Presentation** — this build log, honest Node runtime requirements, and a
       trimmed lint/tooling story.
 
 ### Further out
