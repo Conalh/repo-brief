@@ -6,29 +6,12 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-Post-V1 hardening for running on a public URL (see [ROADMAP](./ROADMAP.md#beyond-v1--hardening)):
+_Nothing yet._
 
-### Fixed
-- Parse `/tree/` URLs with slashed branch names correctly; added explicit
-  `#ref` / `?ref=` / `?branch=` syntax. Deep-mode churn now degrades to a partial
-  or empty signal instead of failing the analysis. Subsystem-graph identity keyed
-  on stable `pathPrefix` so subsystems sharing a display name no longer collapse.
+## [1.0.0] - 2026-05-29
 
-### Added
-- Public-deployment hardening: seed endpoint default-closed in production, per-IP
-  rate limiting and a concurrency cap on `POST /api/briefs`, lower hosted ingest
-  caps, and binary-content detection so non-text files aren't stored as UTF-8.
-- Async analysis: a persisted `jobs` table, `202 + jobId` with status polling,
-  and an in-process job runner (swappable for a durable queue later).
-
-### Changed
-- Runtime requirement clarified to **Node ≥ 22.5** (the web app's local store uses
-  the built-in `node:sqlite`). Removed the placeholder `lint` task until a linter
-  is configured.
-
-## [1.0.0]
-
-RepoBrief V1 — feature-complete. The first intended tagged release.
+First tagged release: RepoBrief V1, plus a post-V1 hardening pass for running on a
+public URL.
 
 ### Added
 - **Analysis engine** (`@repobrief/core`): GitHub + local ingestion, language and
@@ -42,5 +25,22 @@ RepoBrief V1 — feature-complete. The first intended tagged release.
 - **MCP server** (`apps/mcp`): brief a repo from an AI agent.
 - CI (typecheck + build + test) and [`REPO_BRIEF.md`](./REPO_BRIEF.md), RepoBrief
   analyzing its own source.
+- Public-deployment hardening: demo-seed endpoint default-closed in production,
+  per-IP rate limiting and a concurrency cap on `POST /api/briefs`, lower hosted
+  ingest caps, and binary-content detection so non-text files aren't stored as UTF-8.
+- Async analysis: a persisted `jobs` table, `202 + jobId` with status polling, and
+  an in-process job runner (swappable for a durable queue later).
 
-[Unreleased]: https://github.com/Conalh/repo-brief/compare/main...HEAD
+### Fixed
+- Parse `/tree/` URLs with slashed branch names correctly, with explicit
+  `#ref` / `?ref=` / `?branch=` syntax. Deep-mode churn degrades to a partial or
+  empty signal instead of failing the analysis. Subsystem-graph identity keyed on
+  stable `pathPrefix`, so subsystems sharing a display name no longer collapse.
+
+### Changed
+- Runtime requirement clarified to **Node ≥ 22.5** (the web app's local store uses
+  the built-in `node:sqlite`). Removed the placeholder `lint` task until a linter
+  is configured.
+
+[Unreleased]: https://github.com/Conalh/repo-brief/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/Conalh/repo-brief/releases/tag/v1.0.0
