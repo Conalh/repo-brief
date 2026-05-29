@@ -38,6 +38,26 @@ automatically on first use.
 | `TURSO_AUTH_TOKEN` | Auth token for the Turso database. |
 | `SEED_TOKEN` | Optional. If set, `POST /api/demo/seed` requires a matching `x-seed-token` header. |
 
+## Async analysis jobs
+
+`POST /api/briefs` is asynchronous: it validates the URL, enqueues a job, and
+returns `202 { jobId }`. The work runs in a background job runner (bounded
+concurrency `BRIEFS_MAX_CONCURRENT`, queue cap `BRIEFS_MAX_QUEUE`), and clients
+poll `GET /api/briefs/jobs/:jobId` until `status` is `succeeded` (with `briefId`)
+or `failed` (with `error`). Job state is persisted in the `jobs` table of the
+configured store.
+
+The runner is **in-process**: the queue lives in memory and the analysis runs in
+the same Node process. This fits the single-instance deploy below. Two caveats:
+
+- **Serverless** (Vercel/Netlify) may freeze or kill the process after the HTTP
+  response, so background work can be cut short — and an in-memory queue isn't
+  shared across replicas. For serverless or multi-replica setups, move execution
+  to a durable queue + worker. The persisted `jobs` table already models what
+  such a worker needs; only the executor (`apps/web/lib/jobs.ts`) would change.
+- A process restart abandons in-memory queued/in-flight jobs (their rows remain
+  in their last state); re-submit to retry.
+
 ## Single-instance deploy (recommended for now)
 
 ```bash

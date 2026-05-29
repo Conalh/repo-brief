@@ -1,17 +1,14 @@
 import { NextResponse } from 'next/server';
-import {
-  GitHubIngestError,
-  RepoUrlParseError,
-  type BriefMode,
-} from '@repobrief/core';
-import { runGitHubBrief } from '@/lib/analyze-service';
+import { parseGitHubUrl, RepoUrlParseError, type BriefMode } from '@repobrief/core';
+import { enqueueBrief, JobQueueFullError } from '@/lib/jobs';
 import { briefsRateLimiter, clientIp } from '@/lib/rate-limit';
 
 const MODES: BriefMode[] = ['fast', 'balanced', 'deep'];
 
 export const runtime = 'nodejs';
-// Briefs can take up to ~90s; allow a long synchronous request on platforms
-// that honor this (e.g. Vercel). Async job mode is a later enhancement.
+// Analysis runs asynchronously in a background job; POST returns immediately.
+// On a long-running host the job is unbounded; on serverless it is bounded by
+// this duration, so keep it generous.
 export const maxDuration = 120;
 
 function tooManyRequests(message: string, retryAfterSec: number): NextResponse {
@@ -21,7 +18,10 @@ function tooManyRequests(message: string, retryAfterSec: number): NextResponse {
   );
 }
 
-/** POST /api/briefs { url } -> { id } — runs (or cache-hits) a GitHub brief. */
+/**
+ * POST /api/briefs { url, mode? } -> 202 { jobId, status }.
+ * Enqueues an async analysis job; clients poll GET /api/briefs/jobs/:jobId.
+ */
 export async function POST(request: Request): Promise<NextResponse> {
   let body: { url?: unknown; mode?: unknown };
   try {
@@ -39,30 +39,35 @@ export async function POST(request: Request): Promise<NextResponse> {
       ? (body.mode as BriefMode)
       : 'balanced';
 
-  // Per-IP rate limit guards against request floods; the concurrency cap bounds
-  // how many expensive analyses run at once on this instance.
-  const decision = briefsRateLimiter.take(clientIp(request.headers));
-  if (!decision.ok) {
-    return tooManyRequests('Too many requests. Please slow down.', decision.retryAfterSec);
-  }
-  if (!briefsRateLimiter.acquire()) {
-    return tooManyRequests('Server is busy analyzing other repositories. Try again shortly.', 30);
-  }
-
+  // Validate the reference synchronously so obviously bad input fails fast with
+  // a 400 instead of being accepted as a job that is doomed to fail.
   try {
-    const brief = await runGitHubBrief(body.url, mode);
-    return NextResponse.json({ id: brief.id }, { status: 201 });
+    parseGitHubUrl(body.url);
   } catch (err) {
     if (err instanceof RepoUrlParseError) {
       return NextResponse.json({ error: err.message }, { status: 400 });
     }
-    if (err instanceof GitHubIngestError) {
-      const status = err.status === 404 ? 404 : err.status === 403 ? 429 : 502;
-      return NextResponse.json({ error: err.message }, { status });
+    throw err;
+  }
+
+  // Per-IP rate limit guards against request floods; the job runner's
+  // concurrency cap (and queue limit) bound how much work runs at once.
+  const decision = briefsRateLimiter.take(clientIp(request.headers));
+  if (!decision.ok) {
+    return tooManyRequests('Too many requests. Please slow down.', decision.retryAfterSec);
+  }
+
+  try {
+    const job = await enqueueBrief(body.url, mode);
+    return NextResponse.json(
+      { jobId: job.id, status: job.status },
+      { status: 202, headers: { Location: `/api/briefs/jobs/${job.id}` } },
+    );
+  } catch (err) {
+    if (err instanceof JobQueueFullError) {
+      return tooManyRequests('Server is busy. Please try again shortly.', 30);
     }
     const message = err instanceof Error ? err.message : 'Unknown error.';
     return NextResponse.json({ error: message }, { status: 500 });
-  } finally {
-    briefsRateLimiter.release();
   }
 }
